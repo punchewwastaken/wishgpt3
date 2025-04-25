@@ -22,6 +22,6 @@ async function login(){
         })
         let token = await response.json()
         createCookie(token.jwt)
-        window.location.replace("upload.html")
+        window.location.replace("../chat.html")
     }
 }

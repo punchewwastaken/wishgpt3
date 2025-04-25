@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="css/stylesheet.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap" rel="stylesheet">
+    <script defer src="scripts/script.js"></script>
+    <script defer src="scripts/marked.js"></script>
+    <script defer src="https://kit.fontawesome.com/06e4aa9dfc.js" crossorigin="anonymous"></script>
+</head>
+<body onload="getMessagesFromDB()">
+    <div class="grid-container">
+        <div class="grid-header header-container">
+            <nav>
+                <div class="nav-container">
+                    <div class="mobile-menu-container">
+                        <ul class="mobile-menu">
+                            <li><a onclick="openHistory()">Chat-History</a></li>
+                            <li><a onclick="openChar()">Characters</a></li>
+                            <li><a onclick="openMobileMenu()">Menu</a></li>
+                        </ul>
+                    </div>
+                    <div class="dropdown">
+                        <button class="dropdown-button">Menu</button>
+                        <div class="dropdown-content">
+                            <a href="chat.html">Chat</a>
+                            <a href="account.html">Account</a>
+                            <a onclick="logout()">Logout</a>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+            <header> <!--grid row pos 1-3-->
+                <div>
+                    <h1>Character chat</h1>
+                </div>
+            </header>
+        </div>
+        <div id="index-hamburger-menu">
+            <ul>
+                <li><a href="chat.html">Chat</a></li>
+                <li><a href="account.html">About</a></li>
+            </ul>
+        </div>
+        <div class="grid-chat-hist">
+            <aside> <!--grid row pos 4, 7,-->
+                <h3 class="center roboto-regular" >chat-history</h3>
+                <div class="center" id="chat-history-container">
+                </div>
+            </aside>
+        </div>
+        <div class="grid-main">
+            <main> <!--grid row pos 5, 8,-->
+                <div id="input-container">
+                    <form id="input-container-form">
+                        <textarea autocomplete="off" id="chat-input" placeholder="Start chatting!" maxlength="4000">Hello!</textarea>
+                        <button type="button" id="send-button" class="button" onclick="goChat()">
+                            <i id="chat-loading-icon" class="fa-solid fa-spinner"></i>
+                            Send
+                        </button>
+                        <button type="button" id="save-button" class="button" onclick="saveChatHistory()">
+                            <i id="save-loading-icon" class="fa-solid fa-spinner"></i>
+                            Save chat!</button>
+                    </form>
+                </div>
+                <div id="response-container">
+                </div>
+            </main>
+        </div>
+        <div class="grid-chara">
+            <aside> <!--grid row pos 6, 9,-->
+                <h3 class="center roboto-regular">Characters</h3>
+                <div id="character-container">
+                    <div id="add-character-btn" onclick="openCCMenu()">
+                        <i id="add-character-icon" class="fa-solid fa-plus"></i>
+                    </div>
+                    <div class="character-object" id="Mabel" onclick="loadCharacter('Mabel')">
+                        <p>Example</p>
+                        <img src="images/example.PNG" width="100" height="100" alt="Example image">
+                    </div>
+                </div>
+            </aside>
+        </div>
+        <div class="grid-footer">
+            <footer> <!--grid row pos 10, 11, 12-->
+                <p class="center">All rights reserved 2024</p>
+            </footer>
+        </div>
+    </div>
+    <div id="character-creation-container">
+        <div id="character-creation-menu">
+            <div id="character-creation-close-btn" onclick="closeCCMenu()"><i id="close-CC-X" class="fa-solid fa-x"></i></div>
+            <div id="cc-form">
+                <div id="cc-tophalf">
+                    <div id="cc-image-upload-container">
+                        <img src="images/placeholder.jpg" id="cc-upload-preview" width="200" height="200" alt="Placeholder image">
+                        <input title="Image" placeholder="none" id="cc-image" type="file" onchange="loadImage(this)">
+                    </div>  
+                    <div id="cc-name-container">
+                        <textarea autocomplete="off" id="character-name" placeholder="Character name"></textarea>
+                    </div>
+                </div>
+                <div id="cc-bottomhalf">
+                    <form>
+                        <textarea autocomplete="off" rows="8" id="character-description" placeholder="Character description"></textarea>
+                        <br>
+                        <button type="button" id="cc-submit-btn" onclick="createCharacter()">Submit</button>
+                    </form>
+                </div>  
+            </div>
+        </div>
+    </div>
+</body>
+</html>

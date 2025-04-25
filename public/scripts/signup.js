@@ -17,7 +17,7 @@ async function createAccount(){
         })
         if(response.ok){
             alert("Account created!")
-            window.location.replace("login.html")
+            window.location.replace("../login.html")
         }else{
             alert("Server error!")
         }

@@ -7,6 +7,7 @@ const bodyParser = require('body-parser')
 const jose = require('jose') //library jose for jwt
 const { jwtVerify } = require("jose");
 const hash = require('js-sha256');//lib for hash
+const { verify } = require('crypto');
 const app = express()
 //configuration
 app.use(bodyParser.urlencoded({extended:true}))
@@ -54,7 +55,7 @@ async function verifyToken(req, res, next) {
         req.user = payload.user; // Attach decoded user data to request
         let username = req.user
         console.log("JWT username: "+req.user)
-        let sql = `SELECT user FROM user WHERE user =?`
+        let sql = `SELECT user_id FROM user WHERE user_id =?`
         connection.execute(sql,[username],(err,results)=>{
             if(err){
                 console.error("Database error:", err)
@@ -75,7 +76,11 @@ async function verifyToken(req, res, next) {
 //routes
 
 app.get('/',(req,res)=>{
-    res.sendFile(path.join(__dirname+"/public/index.html"))
+    res.status(200).sendFile(path.join(__dirname+"/public/index.html"))
+})
+
+app.get('/login',(req,res)=>{
+    res.status(200).sendFile(path.join(__dirname+"/public/login.html"))
 })
 
 app.post('/login/login',(req,res)=>{
@@ -90,7 +95,7 @@ app.post('/login/login',(req,res)=>{
       }
       if (results.length > 0) {
         console.log(results);
-        createToken(results[0].user).then(jwt => {
+        createToken(results[0].user_id).then(jwt => {
             console.log(jwt); 
             res.status(200).json({ jwt: jwt, message: 'Login successful'})
         });
@@ -114,6 +119,35 @@ app.post('/login/signup',(req, res)=>{
             res.status(200)
         }
     })
+})
+
+app.get('/chat',(req,res)=>{
+    res.status(200).sendFile(path.join(__dirname+"/public/chat.html"))
+})
+
+app.get('/chat/retrieve',verifyToken,(req,res)=>{
+    let user_id = req.user
+    let sql=`SELECT * FROM messages WHERE user_id=? ORDER BY timestamp ASC`
+    connection.execute(sql,[user_id],(err, results)=>{
+        if(err){
+            console.log(err)
+            res.status(500).send("Internal server error: "+ err)
+        }
+        res.status(200).send(results)
+    })
+})
+
+app.post('/chat/message',verifyToken,(req,res)=>{
+    let URL = "http://localhost:11434/v1/chat/completions"
+    try{
+        let response = await fetch(URL,{
+            method:'POST',
+            headers:{
+                'Content-type':'application/json'
+            },
+            body:JSON.stringify(req.body)
+        })
+    }
 })
 
 // Start the server
