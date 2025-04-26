@@ -1,4 +1,4 @@
-let jwt = document.cookie.split("; ").find((row) => row.startsWith("jwt="))?.split("=")[1];
+let jwt = document.cookie.split("; ").find((row) => row.startsWith("jwt="))?.split("=")[1]
 let responseContainer = document.getElementById("response-container")
 let chatHistoryContainer = document.getElementById("chat-history-container")
 let characterMenu = document.getElementById("character-container")
@@ -14,11 +14,12 @@ let mobileNavMenu = false
 let mobileBurgerMenu = document.getElementById("index-hamburger-menu")
 let charMenu = document.querySelector(".grid-chara")
 let historyMenu = document.querySelector(".grid-chat-hist")
+//list of characters, "Mabel" is a default character
 let characterList = [
     {
-        name:'Mabel',
+        character_name:'Mabel',
         description:"Mabel is a fellow classmate at school, she gets confused easily and often. But that only adds to her charm. She loves games and playing games in general, which is the reason for her crippling school grades. She's also reserved and quiet around people she doesn't know, but really open with her friends.",
-        image:'public/images/example.PNG'
+        imagepath:'public/images/example.PNG'
     },
 ]
 let characterPrompt
@@ -34,26 +35,10 @@ document.addEventListener('keydown', function(e){
     }
 })
 
-//listens for resize back to desktop size
-window.addEventListener('resize', () => {
-    if (window.innerWidth<=800){
-        charMenu.style.display="none"
-        charMenu.style.zIndex=-1
-        historyMenu.style.display="none"
-        historyMenu.style.zIndex=-1
-        mobileCharMenu=false
-        mobileHistMenu=false
-    } else if (window.innerWidth>800){
-        charMenu.style.display="block"
-        charMenu.style.zIndex=0
-        historyMenu.style.display="block"
-        historyMenu.style.zIndex=0
-        mobileNavMenu = false
-        mobileBurgerMenu.style.display="none"
-    }
-})
-
-//self explaining
+window.onload=function(){
+    console.log(jwt)
+}
+//self explaining logout function
 
 function logout(){
     document.cookie = "jwt=; max-age=0; path=/"
@@ -62,7 +47,7 @@ function logout(){
 
 //get messages from DB
 
-async function getMessagesFromDB(){
+window.onload=async function getMessagesFromDB(){
     let response = await fetch('/chat/retrieve',{
         method: 'GET',
         headers: {
@@ -70,35 +55,62 @@ async function getMessagesFromDB(){
         },
     })
     let chats = response.json()
-    if(chats){
-        chats.forEach(element=>{
+    chats = JSON.stringify(chats)
+    console.log(chats)
+    /*if(chats){
+        for(let element of chats){
+            let chat={
+                coonversation_id:null,
+                content:null,
+            }
+            let p = document.createElement("p")
             let conversation_id = element.conversation_id
-            let chatName = element.topic||""
-        })
-        object.innerHTML=`<i onclick="" class="fa-solid fa-cloud-arrow-down"></i><i onclick="deleteChat('${date}')" class="fa-solid fa-trash"></i>`
-        p.innerHTML=`${chtNa}`
-        object.appendChild(p)
-        object.setAttribute("onclick", `loadChat('${date}')`)
-        chatHistoryContainer.appendChild(object)
-        chat.date = date
-        chat.content = chatObject
-        chatHistoryList.push(chat)
-    }
-    
+            let chatName = element.topic||"sample text"
+            let object = document.createElement("div")
+            object.innerHTML=`<i onclick="" class="fa-solid fa-cloud-arrow-down"></i><i onclick="deleteChat('${conversation_id}')" class="fa-solid fa-trash"></i>`
+            p.innerHTML=`${chatName}`
+            object.appendChild(p)
+            object.setAttribute("onclick", `loadChat('${conversation_id}')`)
+            chatHistoryContainer.appendChild(object)
+            chat.conversation_id = conversation_id
+            chat.content = chatObject
+            chatHistoryList.push(chat)
+        }
+    }  */
 }
 
 //get characters for this user
-async function getCharactersFromDB(){
+window.onload=async function getCharactersFromDB(){
     let response = await fetch('/character',{
         method:'GET',
         headers:{
             'Authorization':`Bearer ${jwt}`
         }
     })
-    let characterlist = response.json()
-    characterlist.forEach(element=>{
-
-    })
+    let characterlist = json.stringify(response.json())
+    for(let item of characterlist){
+        //adding character to characterlist
+        
+        //adding character icon to character menu
+        let p = document.createElement("p")
+        p.innerHTML = item.character_name
+        let charaObj = document.createElement("div")
+        charaObj.className = "character-object"
+        charaObj.id = item.character_name
+        charaObj.setAttribute("onclick", `loadCharacter("${charaName}")`)
+        let img = new Image()
+        img.src = item.imagepath
+        img.className = "character-obj-img"
+        charaObj.appendChild(p)
+        charaObj.appendChild(img)
+        characterMenu.appendChild(charaObj)
+        characterList.push(character)
+        let imageDisplay = document.getElementById("cc-upload-preview")
+        imageDisplay.src="/public/images/placeholder.jpg"
+        imageDisplay.alt="Placeholder Image"
+        charaDesc.value=""
+        charaName.value=""
+    }
 }
 //shorthand function for console.log
 function print(input){
@@ -134,27 +146,20 @@ async function createCharacter(){
     let form = new FormData()
     form.append("file", charaImg)
     let character = {
-        user_id:jwt,
         character_name : charaName,
         description : charaDesc,
     }
-    try{
-        await fetch("/character/create", {
-            method: "POST",
+    form.append("character",character)
+    let response = await fetch("/character/create", {
+        method: "POST",
             headers:{
-                "Content-type":"Application/JSON"
-            },
-            body: JSON.stringify(character)
-        })
-    } catch(err){
-        console.log(err)
-    }
-
-    for (let item of characterList){ //if character already exists, return null
-        if (item.name == charaName){
-            alert("The character already exists!")
-            return
-        }
+            "Content-type":"Application/JSON",
+            "Authorization":`Bearer ${jwt}`,
+        },
+        body: JSON.stringify(character)
+    })
+    if(!response.ok){
+        alert("Failed to upload")
     }
     let p = document.createElement("p")
     p.innerHTML = charaName
@@ -184,7 +189,8 @@ async function loadCharacter(input){
         let response = await fetch('/characters',{
             method:'POST',
             header:{
-                'Content-type':'Application/json'
+                'Content-type':'Application/json',
+                'Authorization':`Bearer ${jwt}`
             },
             body: JSON.stringify(data)
         })
@@ -193,14 +199,15 @@ async function loadCharacter(input){
     }
     for (let item of characterList){
         if (item.name == input){
-            let charaObj = document.getElementById(item.name)
+            let charaObj = document.getElementById(item.character_name)
             charaObj.style.backgroundColor="#3b8a99"
             currentcharacter.push(item)
             characterPrompt = item.description
-            currentCharacterName = item.name
+            currentCharacterName = item.character_name
+            print("Current character is selected")
         }
         if(currentcharacter.length>=2){
-            let char = document.getElementById(`${currentcharacter[0].name}`)
+            let char = document.getElementById(`${currentcharacter[0].character_name}`)
             char.style.backgroundColor = "rgb(108, 213, 216)"
             currentcharacter.shift()
         }
@@ -274,11 +281,6 @@ async function saveChatHistory(){
     chat.date = date
     chat.content = chatObject
     chatHistoryList.push(chat)
-    try{
-        let stats = await fetch('/savemessage')
-    } catch {
-
-    }
     clearChatHistory()
     responseContainer.replaceChildren()
     icon.style.display="none"
@@ -297,6 +299,11 @@ function clearChatHistory(){
 //Generate response
 async function generateText(input, summarize){
     let msg
+    if(!conversation_id){
+        let now = new Date()
+        conversation_id = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+        print(conversation_id)
+    }
     if(!summarize){
     let history = temporaryChatHistory
     let botPrompt = {"role": "system", "content":`${characterPrompt}.\nThis is a roleplay between User and ${currentCharacterName}, continue the conversation, write a single short reply as ${currentCharacterName}\n`}
@@ -308,7 +315,6 @@ async function generateText(input, summarize){
             {'role': 'user', 'content': `${input}`}
         ]
         msg=prompt
-
     }
     const URL = "/chat/message"
     request = {
@@ -317,48 +323,31 @@ async function generateText(input, summarize){
         mode:"instruct",
         model:"llama3.2",
     }
-    try {
-        
-        let user = document.getElementById("user-name").value||""
+
+        let user = document.getElementById("roleplay-name").value||""
         let response = await fetch(URL, {
             method: "POST",
             headers: {
                 "Content-type": "application/json",
                 "user-name": `${user}`,
-                "Authorization":`${jwt}`,
-                "coversation-id":"1"
+                "Authorization":`Bearer ${jwt}`,
+                "coversation-id":`${conversation_id}`
             },
             body: JSON.stringify(request)
         })
         if (!response.ok){
-            throw new Error("Something went wrong!" + response.status)
+            console.log("Error:", response.status)
+            let errorMessage = "An error was encountered. Please check your internet connection. "
+            return errorMessage
         }
         let data = await response.json()
         let output = data.choices[0].message.content
         writeToChatHistory(input, output)
-        try{
-            let data = {
-                user: input,
-                bot: output
-            }
-            await fetch('/savemessages', {
-                method: "POST",
-                headers:{
-                    "Content-type":"application/json"
-                },
-                body: JSON.stringify(data)
-            })
-        } catch (error){
-            console.log("JSON no sendy worky :(")
-        }
         inputMessage.innerHTML = ""
         output = marked.parse(output)
         return output
-    } catch (error){
-        console.error("Error:", error)
-        let errorMessage = "An error was encountered. Please check your internet connection."
-        return errorMessage
-    } 
+        
+    
 }
 function makeChatObjects(user, bot){
     if (user&&!bot){

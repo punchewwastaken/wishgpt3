@@ -1,7 +1,7 @@
 let jwt
 async function login(){
-    let username = "punchew"
-    let password = "test"
+    let username = "admin"
+    let password = "1111"
     if(!username||!password){
         alert("Empty fields!")
     } else{
@@ -35,13 +35,13 @@ async function test(input){
         method:'POST',
         headers:{
             'Content-type':'application/json',
-            'Authorization':`Bearer ${jwt}`
+            'Authorization':`Bearer ${jwt}`,
         },
         body:JSON.stringify(request)
     })
     if(response.ok){
         let message = await response.json()
-        console.log(message)
+        console.log(message.choices[0].message.content)
         
     }else{
         console.log(response.status)
