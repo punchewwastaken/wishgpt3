@@ -8,11 +8,14 @@ const jose = require('jose') //library jose for jwt
 const { jwtVerify } = require("jose");
 const hash = require('js-sha256');//lib for hash
 const { verify } = require('crypto');
+const { connect } = require('http2');
 const app = express()
 //configuration
 app.use(bodyParser.urlencoded({extended:true}))
 app.use(bodyParser.json())
 app.use(express.static('public'))
+//URL endpoint
+let URL = "http://localhost:11434/v1/chat/completions"
 // Configure storage
 const storage = multer.diskStorage({
     destination: path.join(__dirname, './files/'), // Save files in the 'files' folder
@@ -87,7 +90,7 @@ app.post('/login/login',(req,res)=>{
     let username = req.body.username
     let password = req.body.password
     hashpwd = hashString(username, password)
-    let sql = `SELECT user FROM user WHERE user = ? AND password = ?`
+    let sql = `SELECT user_id FROM user WHERE user = ? AND password = ?`
     connection.execute(sql, [username, hashpwd], (err, results, fields) => {
       if (err) {
           console.log(err)
@@ -127,7 +130,8 @@ app.get('/chat',(req,res)=>{
 
 app.get('/chat/retrieve',verifyToken,(req,res)=>{
     let user_id = req.user
-    let sql=`SELECT * FROM messages WHERE user_id=? ORDER BY timestamp ASC`
+    let sql=`SELECT * FROM messages WHERE user_id=? 
+    ORDER BY timestamp ASC`
     connection.execute(sql,[user_id],(err, results)=>{
         if(err){
             console.log(err)
@@ -137,17 +141,116 @@ app.get('/chat/retrieve',verifyToken,(req,res)=>{
     })
 })
 
-app.post('/chat/message',verifyToken,(req,res)=>{
-    let URL = "http://localhost:11434/v1/chat/completions"
-    try{
-        let response = await fetch(URL,{
-            method:'POST',
-            headers:{
-                'Content-type':'application/json'
-            },
-            body:JSON.stringify(req.body)
-        })
+app.post('/chat/message',verifyToken,async (req,res)=>{
+    let now = new Date()
+    let conversation_id = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+    let user_id = req.user
+    let user_name = req.headers["user-name"]
+    try {
+      const response = await fetch(URL, {
+          method: 'POST',
+          headers: {
+              'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(req.body)
+      });
+      const data = await response.json()
+      console.log(data)
+      let userMessage = req.body.request.data[req.body.request.data.length - 1]
+      let debug ={
+        conversation_id,
+        user_id,
+        user_name,
+        userMessage
+      }
+      console.log(debug)
+      let sql=`INSERT INTO messages (timestamp,conversation_id,user_id,user_name,sender_type,message) VALUE (?,?,?,?,?,?)`
+      connection.execute(sql,["NOW()",conversation_id,user_id,user_name,"user",userMessage],(err,results)=>{
+        if(err){
+            console.log(err)
+            res.status(500).send("Database error")
+        }
+      })
+      let botMessage = data.choices[0].message.content
+      let sql2=`INSERT INTO messages (timestamp,conversation_id,user_id,user_name,sender_type,message) VALUE (?,?,?,?,?,?)`
+      connection.execute(sql,["NOW()",conversation_id,user_id,user_name,"bot",botMessage],(err,results)=>{
+        if(err){
+            console.log(err)
+            res.status(500).send("Database error")
+        }
+      })
+      res.status(200).send(data)
+  } catch (error) {
+      console.error('Error routing request to provider:', error);
+      res.status(500).send({ error: 'Failed to fetch response from provider' });
+  }
+})
+
+app.post('/chat/message/topic',verifyToken,async(req,res)=>{
+    let user_id=req.user
+    let conversation_id=req.headers["conversation-id"]
+    let content =req.body.data
+    let data =[
+        {"role":"system","content":"Summarize the content of the chat below into a short sentence that marks the topic"},
+        {"role":"user", "content":`${CompositionEvent}`}
+    ]
+    let request={
+        messages:data,
+        model:"llama3.2"
     }
+    let response = await fetch(URL,{
+        method:'POST',
+        headers:{
+            'Content-type':'application/json'
+        },
+        body:request
+    })
+    let summaryresponse = response.json()
+    let summary = summaryresponse.choices[0].message.content
+    let sql=`UPDATE messages SET topic=? WHERE user_id=?,conversation_id=?`
+    connection.execute(sql,[summary, user_id,conversation_id],(err,results)=>{
+        if(err){
+            console.log(err)
+            res.status(500).send("Unable to generate topic marker")
+        }
+        res.status(200)
+    })
+})
+
+app.post('/chat/delete',verifyToken,(req,res)=>{
+    let user_id = req.user
+    let conversation_id = req.headers["conversation-id"]
+    let sql=`DELETE FROM messages WHERE conversation_id=?, user_id=?`
+    connection.execute(sql, [conversation_id,user_id], (err,results)=>{
+        if(err){
+            console.log(err)
+            res.status(500).send("Internal database error")
+        }
+        res.status(200).send("Chat deleted succesfully")
+    })
+})
+
+app.get('/characters',verifyToken,(req,res)=>{
+    let user_id = req.user
+    let sql=`SELECT * FROM characters WHERE user_id=?`
+    connection.execute(sql,[user_id],(err,results)=>{
+        if(err){
+            console.log(err)
+            res.status(500).send("Unable to retrieve characters")
+        }
+        console.log(results)
+        res.status(200).send(results)
+    })
+})
+
+app.post('/character/create',verifyToken,upload.single("file"),(req,res)=>{
+    let filename=req.file.originalname
+    let user_id = req.user
+})
+
+app.post('/character/delete',verifyToken,(req,res)=>{
+    let user_id=req.user
+    let character_id=req.body.character_id
 })
 
 // Start the server

@@ -1,4 +1,4 @@
-let user = document.cookie.split("; ").find((row) => row.startsWith("jwt="))?.split("=")[1];
+let jwt = document.cookie.split("; ").find((row) => row.startsWith("jwt="))?.split("=")[1];
 let responseContainer = document.getElementById("response-container")
 let chatHistoryContainer = document.getElementById("chat-history-container")
 let characterMenu = document.getElementById("character-container")
@@ -191,14 +191,15 @@ async function createCharacter(){
     let charaDesc = document.getElementById("character-description").value
     let charaName = document.getElementById("character-name").value
     let charaImg = document.getElementById("cc-upload-preview").src
+    let form = new FormData()
+    form.append("file", charaImg)
     let character = {
-        name : charaName,
+        user_id:jwt,
+        character_name : charaName,
         description : charaDesc,
-        image : charaImg,
-        creator: user
     }
     try{
-        await fetch("/addcharacter", {
+        await fetch("/character/create", {
             method: "POST",
             headers:{
                 "Content-type":"Application/JSON"
@@ -240,7 +241,7 @@ async function loadCharacter(input){
         let data ={
             username : user
         }
-        let response = await fetch('loadcharacters',{
+        let response = await fetch('/characters',{
             method:'POST',
             header:{
                 'Content-type':'Application/json'
@@ -369,7 +370,7 @@ async function generateText(input, summarize){
         msg=prompt
 
     }
-    const URL = "/api"
+    const URL = "/chat/message"
     request = {
         messages : msg,
         temperature:0.7,
@@ -380,7 +381,8 @@ async function generateText(input, summarize){
         let response = await fetch(URL, {
             method: "POST",
             headers: {
-                "Content-type": "application/json"
+                "Content-type": "application/json",
+                "user-name": `user`
             },
             body: JSON.stringify(request)
         })
