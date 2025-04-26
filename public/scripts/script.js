@@ -25,6 +25,7 @@ let characterPrompt
 let currentCharacterName
 let currentcharacter = []
 let currentTimestamp
+let conversation_id
 
 //listening for Enter key
 document.addEventListener('keydown', function(e){
@@ -69,20 +70,24 @@ async function getMessagesFromDB(){
         },
     })
     let chats = response.json()
-    let date = element.conversation_id
-    let chatName = element.topic
-    object.innerHTML=`<i onclick="" class="fa-solid fa-cloud-arrow-down"></i><i onclick="deleteChat('${date}')" class="fa-solid fa-trash"></i>`
-    p.innerHTML=`${chtNa}`
-    object.appendChild(p)
-    object.setAttribute("onclick", `loadChat('${date}')`)
-    chatHistoryContainer.appendChild(object)
-    chat.date = date
-    chat.content = chatObject
-    chatHistoryList.push(chat)
+    if(chats){
+        chats.forEach(element=>{
+            let conversation_id = element.conversation_id
+            let chatName = element.topic||""
+        })
+        object.innerHTML=`<i onclick="" class="fa-solid fa-cloud-arrow-down"></i><i onclick="deleteChat('${date}')" class="fa-solid fa-trash"></i>`
+        p.innerHTML=`${chtNa}`
+        object.appendChild(p)
+        object.setAttribute("onclick", `loadChat('${date}')`)
+        chatHistoryContainer.appendChild(object)
+        chat.date = date
+        chat.content = chatObject
+        chatHistoryList.push(chat)
+    }
+    
 }
 
 //get characters for this user
-
 async function getCharactersFromDB(){
     let response = await fetch('/character',{
         method:'GET',
@@ -99,71 +104,6 @@ async function getCharactersFromDB(){
 function print(input){
     console.log(input)
 }
-//open and close mobile hamburger menu
-function openMobileMenu(){
-    if(!mobileNavMenu){
-        mobileNavMenu=true
-        mobileBurgerMenu.style.display="flex"
-        if(mobileCharMenu){
-            mobileHistMenu=false
-            document.querySelector(".grid-chat-hist h3").style.display = "none"
-            historyMenu.style.zIndex = "0"
-            historyMenu.style.width="0%"
-        } else if (mobileHistMenu){
-            mobileCharMenu=false
-            charMenu.style.zIndex="0"
-            charMenu.style.width="0%"
-            document.querySelector(".grid-chara h3").style.display = "none"
-        }
-    } else if (mobileNavMenu){
-        mobileBurgerMenu.style.display="none"
-        mobileNavMenu=false
-    }
-}
-
-//opens and closes character history for mobile
-function openHistory(){
-    if(!mobileHistMenu){
-        mobileHistMenu=true
-        historyMenu.style.zIndex="1"
-        historyMenu.style.width="80%"
-        document.querySelector(".grid-chat-hist h3").style.display = "block"
-        //closes character meny if open
-        mobileCharMenu=false
-        charMenu.style.zIndex="0"
-        charMenu.style.width="0%"
-        document.querySelector(".grid-chara h3").style.display = "none"
-        //closes burger menu
-        mobileBurgerMenu.style.display="none"
-    } else if(mobileHistMenu){
-        mobileHistMenu=false
-        document.querySelector(".grid-chat-hist h3").style.display = "none"
-        historyMenu.style.zIndex = "0"
-        historyMenu.style.width="0%"
-    }
-}
-//opens and closes character meny for mobile
-function openChar(){
-    if (!mobileCharMenu){
-        mobileCharMenu=true
-        charMenu.style.zIndex="1"
-        charMenu.style.width="80%"
-        document.querySelector(".grid-chara h3").style.display = "block"
-        //closes history menu if open
-        mobileHistMenu=false
-        document.querySelector(".grid-chat-hist h3").style.display = "none"
-        historyMenu.style.zIndex = "0"
-        historyMenu.style.width="0%"
-        //closes burger menu
-        mobileBurgerMenu.style.display="none"
-    } else if (mobileCharMenu){
-        mobileCharMenu=false
-        charMenu.style.zIndex="0"
-        charMenu.style.width="0%"
-        document.querySelector(".grid-chara h3").style.display = "none"
-    }
-}
-
 //load image preview in character creation menu
 function loadImage(input){
     let imageDisplay = document.getElementById("cc-upload-preview")
@@ -378,11 +318,15 @@ async function generateText(input, summarize){
         model:"llama3.2",
     }
     try {
+        
+        let user = document.getElementById("user-name").value||""
         let response = await fetch(URL, {
             method: "POST",
             headers: {
                 "Content-type": "application/json",
-                "user-name": `user`
+                "user-name": `${user}`,
+                "Authorization":`${jwt}`,
+                "coversation-id":"1"
             },
             body: JSON.stringify(request)
         })
