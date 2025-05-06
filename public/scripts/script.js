@@ -182,20 +182,19 @@ async function createCharacter(){
 }   
 //Load character
 async function loadCharacter(input){
-    try{
-        let data ={
-            username : user
-        }
-        let response = await fetch('/characters',{
-            method:'POST',
-            header:{
-                'Content-type':'Application/json',
-                'Authorization':`Bearer ${jwt}`
-            },
-            body: JSON.stringify(data)
-        })
-    }catch(err){
-
+    let data ={
+        username : user
+    }
+    let response = await fetch('/characters',{
+        method:'POST',
+        header:{
+            'Content-type':'Application/json',
+            'Authorization':`Bearer ${jwt}`
+        },
+        body: JSON.stringify(data)
+    })
+    for(let item of response.json()){
+        characterList.append(item)
     }
     for (let item of characterList){
         if (item.name == input){
@@ -301,21 +300,14 @@ async function generateText(input, summarize){
     let msg
     if(!conversation_id){
         let now = new Date()
-        conversation_id = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+        conversation_id = `${now}`
         print(conversation_id)
     }
-    if(!summarize){
     let history = temporaryChatHistory
     let botPrompt = {"role": "system", "content":`${characterPrompt}.\nThis is a roleplay between User and ${currentCharacterName}, continue the conversation, write a single short reply as ${currentCharacterName}\n`}
     let userPrompt = {"role": "user", "content": `${input}`}
     let arr = [botPrompt, userPrompt]
     msg = history.concat(arr)
-    } else if (summarize){
-        let prompt = [{'role': 'system', 'content':`Summarize the following conversation between user and ${currentCharacterName}(also known as bot) into a topic header:`},
-            {'role': 'user', 'content': `${input}`}
-        ]
-        msg=prompt
-    }
     const URL = "/chat/message"
     request = {
         messages : msg,

@@ -14,7 +14,7 @@ const app = express()
 app.use(bodyParser.urlencoded({extended:true}))
 app.use(bodyParser.json())
 app.use(express.static('public'))
-//URL endpoint
+//URL endpoint for chatgpt clone
 let URL = "http://localhost:11434/v1/chat/completions"
 // Configure storage
 const storage = multer.diskStorage({
@@ -73,7 +73,7 @@ async function verifyToken(req, res, next) {
         })
     } catch (error) {
         console.log(error)
-        res.status(403).json({ error: "Invalid token" })
+        res.status(403).json({ error: "Invalid token" }).redirect(path.join(__dirname+'/public/403.html'))
     }
 }
 
@@ -84,7 +84,7 @@ app.get('/',(req,res)=>{
 })
 
 app.get('/login',(req,res)=>{
-    res.status(200).sendFile(path.join(__dirname+"/public/login.html"))
+    res.status(200).redirect(path.join(__dirname+"/public/login.html"))
 })
 
 app.post('/login/login',(req,res)=>{
@@ -101,7 +101,7 @@ app.post('/login/login',(req,res)=>{
         console.log(results);
         createToken(results[0].user_id).then(jwt => {
             console.log(jwt); 
-            res.status(200).json({ jwt: jwt, message: 'Login successful'})
+            res.status(200).json({ jwt: jwt, message: 'Login successful'}).redirect(path.join(__dirname+'/public/chat.html'))
         });
       } else {
           res.status(401).send('Invalid credentials')
@@ -153,7 +153,7 @@ app.post('/chat/message',verifyToken,async (req,res)=>{
     console.log(conversation_id)
     if(!conversation_id){
         let now = new Date()
-        conversation_id = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+        conversation_id = `${now}`
         console.log(conversation_id)
     }
     let user_id = req.user
@@ -161,6 +161,11 @@ app.post('/chat/message',verifyToken,async (req,res)=>{
     if(!roleplay_name){
         roleplay_name=req.user
     }
+    /*let prompt = [
+        {'role': 'system', 'content':`Summarize the following conversation between user and ${currentCharacterName}(also known as bot) into a topic header:`},
+        {'role': 'user', 'content': `${input}`}
+    ]
+    msg=prompt*/
     try {
         console.log(req.body)
       const response = await fetch(URL, {
@@ -172,7 +177,7 @@ app.post('/chat/message',verifyToken,async (req,res)=>{
       });
       const data = await response.json()
       let processedReq = req
-      //console.log("request: "+JSON.stringify(req.body.messages[1].content))
+      //console.log("request: "+JSON.stringify(req.body.messages[1].content)) hur man formaterar body.req
       let userMessage = processedReq.body.messages[processedReq.body.messages.length-1].content
       let debug ={
         conversation_id,
@@ -202,9 +207,6 @@ app.post('/chat/message',verifyToken,async (req,res)=>{
       res.status(500).send({ error: 'Failed to fetch response from provider' });
   }
 })
-/*    let now = new Date()
-    let conversation_id = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
-    */
 
 app.post('/chat/message/topic',verifyToken,async(req,res)=>{
     let user_id=req.user_id

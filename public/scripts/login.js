@@ -21,7 +21,12 @@ async function login(){
             body:JSON.stringify(data)
         })
         let token = await response.json()
-        createCookie(token.jwt)
-        window.location.replace("../chat.html")
+        if(response.ok){
+            createCookie(token.jwt)
+            window.location.replace("../chat.html")
+        }else{
+            window.location.replace("../403.html")
+        }
+        
     }
 }
