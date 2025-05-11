@@ -88,33 +88,35 @@ window.onload=async function getCharactersFromDB(){
             'Authorization':`Bearer ${jwt}`
         },
     })
-    for(let item of response.json()){
-        print(item)
+    if(!item){ //check if list is empty
+        print("Empty character list")
+    }else{
+        //add character from db to localstorage
+        response = json.stringify(response.json())
+        for(let item of response){
+            characterList.appent(item)
+            //adding character icon to character menu
+            let p = document.createElement("p")
+            p.innerHTML = item.character_name
+            let charaObj = document.createElement("div")
+            charaObj.className = "character-object"
+            charaObj.id = item.character_name
+            charaObj.setAttribute("onclick", `loadCharacter("${charaName}")`)
+            let img = new Image()
+            img.src = item.imagepath
+            img.className = "character-obj-img"
+            charaObj.appendChild(p)
+            charaObj.appendChild(img)
+            characterMenu.appendChild(charaObj)
+            characterList.push(character)
+            let imageDisplay = document.getElementById("cc-upload-preview")
+            imageDisplay.src="/public/images/placeholder.jpg"
+            imageDisplay.alt="Placeholder Image"
+            charaDesc.value=""
+            charaName.value=""
+        }
     }
-    /*let characterlist = json.stringify(response.json())
-    for(let item of characterlist){
-        //adding character to characterlist
-        
-        //adding character icon to character menu
-        let p = document.createElement("p")
-        p.innerHTML = item.character_name
-        let charaObj = document.createElement("div")
-        charaObj.className = "character-object"
-        charaObj.id = item.character_name
-        charaObj.setAttribute("onclick", `loadCharacter("${charaName}")`)
-        let img = new Image()
-        img.src = item.imagepath
-        img.className = "character-obj-img"
-        charaObj.appendChild(p)
-        charaObj.appendChild(img)
-        characterMenu.appendChild(charaObj)
-        characterList.push(character)
-        let imageDisplay = document.getElementById("cc-upload-preview")
-        imageDisplay.src="/public/images/placeholder.jpg"
-        imageDisplay.alt="Placeholder Image"
-        charaDesc.value=""
-        charaName.value=""
-    }*/
+
 }
 //shorthand function for console.log
 function print(input){
@@ -147,20 +149,23 @@ async function createCharacter(){
     let charaDesc = document.getElementById("character-description").value
     let charaName = document.getElementById("character-name").value
     let charaImg = document.getElementById("cc-upload-preview").src
+    let fileInput = document.getElementById("cc-image");
+    let file = fileInput.files[0]; // Get actual file
     let form = new FormData()
-    form.append("file", charaImg)
+    form.append("file", file)
     let character = {
         character_name : charaName,
         description : charaDesc,
+        imagepath : charaImg,
     }
-    form.append("character",character)
-    let response = await fetch("/character/create", {
+    form.append("data", JSON.stringify(character))
+    let response = await fetch("/characters/create", {
         method: "POST",
             headers:{
             "Content-type":"Application/JSON",
             "Authorization":`Bearer ${jwt}`,
         },
-        body: JSON.stringify(character)
+        body: form
     })
     if(!response.ok){
         alert("Failed to upload")
@@ -188,13 +193,12 @@ async function createCharacter(){
 async function loadCharacter(input){
     for (let item of characterList){
         if (item.character_name == input){
-            print("loading character")
             let charaObj = document.getElementById(item.character_name)
             charaObj.style.backgroundColor="#3b8a99"
             currentcharacter.push(item)
             characterPrompt = item.description
             currentCharacterName = item.character_name
-            print("Current character is selected")
+            print("Current character is selected" + currentCharacterName)
         }
         if(currentcharacter.length>=2){
             let char = document.getElementById(`${currentcharacter[0].character_name}`)
@@ -287,7 +291,7 @@ function clearChatHistory(){
     temporaryChatHistory.length = 0
 }
 //Generate response
-async function generateText(input, summarize){
+async function generateText(input){
     let msg
     print(conversation_id)
     if(!conversation_id){

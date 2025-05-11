@@ -3,17 +3,15 @@ const express = require('express')
 const mysql = require('mysql2')
 const path = require('path')
 const multer = require('multer');
-const bodyParser = require('body-parser')
 const jose = require('jose') //library jose for jwt
 const { jwtVerify } = require("jose");
 const hash = require('js-sha256');//lib for hash
-const { verify } = require('crypto');
-const { connect } = require('http2');
 const app = express()
 //configuration
-app.use(bodyParser.urlencoded({extended:true}))
-app.use(bodyParser.json())
+app.use(express.json({ limit: '100mb' }));
+app.use(express.urlencoded({ limit: '100mb', extended: true }));
 app.use(express.static('public'))
+app.use(express.static("files"))
 //URL endpoint for chatgpt clone
 let URL = "http://localhost:11434/v1/chat/completions"
 // Configure storage
@@ -211,7 +209,7 @@ app.post('/chat/message/topic',verifyToken,async(req,res)=>{
     let content =req.body.data
     let data =[
         {"role":"system","content":"Summarize the content of the chat below into a short sentence that marks the topic"},
-        {"role":"user", "content":`${CompositionEvent}`}
+        {"role":"user", "content":`${content}`}
     ]
     let request={
         messages:data,
@@ -262,14 +260,33 @@ app.get('/characters',verifyToken,(req,res)=>{
     })
 })
 
-app.post('/character/create',verifyToken,upload.single("file"),(req,res)=>{
-    let filename=req.file.originalname
+app.post('/characters/create',verifyToken,upload.single("file"),(req,res)=>{
+    console.log(req)
+    /*let character_name = req.body.character_name
+    let description = req.body.description
     let user_id = req.user
+    let sql =`INSERT INTO characters (user_id, character_name, description, imagepath) values (?,?,?,?)`
+    connection.execute(sql, [user_id, character_name, description, filename],(err, results)=>{
+        if(err){
+            console.log(err)
+            res.status(500).send("Unable to upload characters")
+        }
+        console.log(results)
+        res.status(200)
+    })*/
+   res.status(500)
 })
 
 app.post('/character/delete',verifyToken,(req,res)=>{
     let user_id=req.user_id
     let character_id=req.body.character_id
+    let sql = `DROP * FROM characters WHERE character_id=?`
+    connection.execute(sql,[character_id],(err, results)=>{
+        if(err){
+            console.log(err)
+            res.status(500).send("Unable to delete character")
+        }
+    })
 })
 
 // Start the server
