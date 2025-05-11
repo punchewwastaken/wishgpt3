@@ -101,7 +101,7 @@ app.post('/login/login',(req,res)=>{
         console.log(results);
         createToken(results[0].user_id).then(jwt => {
             console.log(jwt); 
-            res.status(200).json({ jwt: jwt, message: 'Login successful'}).redirect(path.join(__dirname+'/public/chat.html'))
+            res.status(200).json({ jwt: jwt, message: 'Login successful'})
         });
       } else {
           res.status(401).send('Invalid credentials')
@@ -156,16 +156,12 @@ app.post('/chat/message',verifyToken,async (req,res)=>{
         conversation_id = `${now}`
         console.log(conversation_id)
     }
+    conversation_id = hash.sha256(conversation_id)
     let user_id = req.user
     let roleplay_name = req.headers["roleplay-name"]
     if(!roleplay_name){
         roleplay_name=req.user
     }
-    /*let prompt = [
-        {'role': 'system', 'content':`Summarize the following conversation between user and ${currentCharacterName}(also known as bot) into a topic header:`},
-        {'role': 'user', 'content': `${input}`}
-    ]
-    msg=prompt*/
     try {
         console.log(req.body)
       const response = await fetch(URL, {
@@ -187,15 +183,16 @@ app.post('/chat/message',verifyToken,async (req,res)=>{
       }
       console.log(debug)
       let sql=`INSERT INTO messages (timestamp,conversation_id,user_id,roleplay_name,sender_type,message) VALUE (?,?,?,?,?,?)`
-      connection.execute(sql,["NOW()",conversation_id,user_id,roleplay_name,"user",userMessage],(err,results)=>{
+      connection.execute(sql,[new Date(),conversation_id,user_id,roleplay_name,"user",userMessage],(err,results)=>{
         if(err){
             console.log(err)
             res.status(500).send("Database error")
         }
       })
+      setTimeout(function(){}, 1000)
       let botMessage = data.choices[0].message.content
       let sql2=`INSERT INTO messages (timestamp,conversation_id,user_id,roleplay_name,sender_type,message) VALUE (?,?,?,?,?,?)`
-      connection.execute(sql2,["NOW()",conversation_id,user_id,roleplay_name,"bot",botMessage],(err,results)=>{
+      connection.execute(sql2,[new Date(),conversation_id,user_id,roleplay_name,"bot",botMessage],(err,results)=>{
         if(err){
             console.log(err)
             res.status(500).send("Database error")

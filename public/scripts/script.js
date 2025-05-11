@@ -81,13 +81,17 @@ window.onload=async function getMessagesFromDB(){
 
 //get characters for this user
 window.onload=async function getCharactersFromDB(){
-    let response = await fetch('/character',{
+    let response = await fetch('/characters',{
         method:'GET',
-        headers:{
+        header:{
+            'Content-type':'Application/json',
             'Authorization':`Bearer ${jwt}`
-        }
+        },
     })
-    let characterlist = json.stringify(response.json())
+    for(let item of response.json()){
+        print(item)
+    }
+    /*let characterlist = json.stringify(response.json())
     for(let item of characterlist){
         //adding character to characterlist
         
@@ -110,7 +114,7 @@ window.onload=async function getCharactersFromDB(){
         imageDisplay.alt="Placeholder Image"
         charaDesc.value=""
         charaName.value=""
-    }
+    }*/
 }
 //shorthand function for console.log
 function print(input){
@@ -182,22 +186,9 @@ async function createCharacter(){
 }   
 //Load character
 async function loadCharacter(input){
-    let data ={
-        username : user
-    }
-    let response = await fetch('/characters',{
-        method:'POST',
-        header:{
-            'Content-type':'Application/json',
-            'Authorization':`Bearer ${jwt}`
-        },
-        body: JSON.stringify(data)
-    })
-    for(let item of response.json()){
-        characterList.append(item)
-    }
     for (let item of characterList){
-        if (item.name == input){
+        if (item.character_name == input){
+            print("loading character")
             let charaObj = document.getElementById(item.character_name)
             charaObj.style.backgroundColor="#3b8a99"
             currentcharacter.push(item)
@@ -298,10 +289,13 @@ function clearChatHistory(){
 //Generate response
 async function generateText(input, summarize){
     let msg
+    print(conversation_id)
     if(!conversation_id){
         let now = new Date()
         conversation_id = `${now}`
         print(conversation_id)
+    } else if (conversation_id){
+        conversation_id = conversation_id
     }
     let history = temporaryChatHistory
     let botPrompt = {"role": "system", "content":`${characterPrompt}.\nThis is a roleplay between User and ${currentCharacterName}, continue the conversation, write a single short reply as ${currentCharacterName}\n`}
@@ -323,7 +317,7 @@ async function generateText(input, summarize){
                 "Content-type": "application/json",
                 "user-name": `${user}`,
                 "Authorization":`Bearer ${jwt}`,
-                "coversation-id":`${conversation_id}`
+                "conversation-id":`${conversation_id}`
             },
             body: JSON.stringify(request)
         })
