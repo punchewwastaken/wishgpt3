@@ -58,9 +58,10 @@ window.onload=async function LoadDatafromDB(){
     })
     chats = await chats.json()
     chats = JSON.stringify(chats)
+    print(chats)
     if(chats){
         for(let element of chats){
-            print(element)
+            
             /*let chat={
                 coonversation_id:null,
                 content:null,
@@ -159,6 +160,7 @@ async function createCharacter(){
         character_name : charaName,
         description : charaDesc,
         imagepath : charaImg,
+        character_id:0
     }
     console.log(character)
     form.append("data", JSON.stringify(character))
@@ -172,6 +174,9 @@ async function createCharacter(){
     if(!response.ok){
         alert("Failed to upload")
     }
+    response = await response.json()
+    response = JSON.stringify(response)
+    print(response)
     let p = document.createElement("p")
     p.innerHTML = charaName
     let charaObj = document.createElement("div")

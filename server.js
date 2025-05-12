@@ -129,13 +129,12 @@ app.get('/chat',(req,res)=>{
 
 app.get('/chat/retrieve',verifyToken,(req,res)=>{
     let user_id = req.user_id
-    console.log("Retrieving chats from: "+user_id+" : "+req.user)
+    console.log("Retrieving chats from: "+req.user)
     // Validate user_id
     if (!user_id) {
         return res.status(400).send("Invalid or missing user ID");
     }
-    let sql=`SELECT * FROM messages WHERE user_id=? 
-    ORDER BY timestamp ASC`
+    let sql=`SELECT * FROM messages WHERE user_id=? ORDER BY timestamp ASC`
     connection.execute(sql,[user_id],(err, results)=>{
         if(err){
             console.log(err)
@@ -260,26 +259,17 @@ app.get('/characters',verifyToken,(req,res)=>{
             console.log(err)
             res.status(500).send("Unable to retrieve characters")
         }
-        console.log(results)
         res.status(200).send(JSON.stringify(results))
     })
 })
 
 app.post('/characters/create',verifyToken,upload.single("file"),(req,res)=>{
     console.log("Image has been received")
-    console.log(req.body.data)
     let filename = req.file.originalname
     let parsedData = JSON.parse(req.body.data)
     let character_name = parsedData.character_name
     let description = parsedData.description
     let user_id = req.user_id
-    let debug ={
-        filename,
-        character_name,
-        description,
-        user_id
-    }
-    console.log(debug)
     let sql =`INSERT INTO characters (user_id, character_name, description, imagepath) values (?,?,?,?)`
     connection.execute(sql, [user_id, character_name, description, filename],(err, results)=>{
         if(err){
@@ -287,7 +277,15 @@ app.post('/characters/create',verifyToken,upload.single("file"),(req,res)=>{
             res.status(500).send("Unable to upload characters")
         }
         console.log("image succesfully uploaded")
-        res.status(200)
+    })
+    let sql2=`SELECT character_id FROM characters WHERE user_id=? AND character_name=? AND description=?`
+    connection.execute(sql2, [user_id, character_name, description], (err, results)=>{
+        if(err){
+            console.log(err)
+            res.status(500).send("Unable to retrieve character id string")
+        }
+        console.log(results)
+        res.status(200).send(results)
     })
 })
 
