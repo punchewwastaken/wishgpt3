@@ -42,7 +42,7 @@ async function createToken(payload) {
     return await new jose.SignJWT({user: payload})
         .setProtectedHeader({ alg: 'HS256' })
         .setIssuedAt()
-        .setExpirationTime('2h')
+        .setExpirationTime('8h')
         .sign(secret);
 }
 
@@ -50,12 +50,12 @@ async function createToken(payload) {
 async function verifyToken(req, res, next) {
     try {
         let authHeader = req.headers["authorization"]
-        if (!authHeader) return res.status(401).json({ error: "No token provided" })
+        if (!authHeader){console.log("no token");console.log(authHeader); return res.status(401).send("No token provided")}
         let token = authHeader.split(" ")[1]; // Extract JWT from "Bearer <token>"
         let { payload } = await jwtVerify(token, secret);
-        console.log(payload)
         req.user_id = payload.user; // Attach decoded user data to request
         let user_id = req.user_id
+        console.log(req.user_id)
         let sql = `SELECT user_id,user FROM user WHERE user_id =?`
         connection.execute(sql,[user_id,],(err,results)=>{
             if(err){
@@ -148,6 +148,7 @@ app.get('/chat/retrieve',verifyToken,(req,res)=>{
 
 app.post('/chat/message',verifyToken,async (req,res)=>{
     let conversation_id = req.headers["conversation-id"]
+    let character_id = req.headers["character-id"]
     console.log(conversation_id)
     if(!conversation_id){
         let now = new Date()
@@ -177,11 +178,12 @@ app.post('/chat/message',verifyToken,async (req,res)=>{
         conversation_id,
         user_id,
         roleplay_name,
-        userMessage
+        userMessage,
+        character_id
       }
       console.log(debug)
-      let sql=`INSERT INTO messages (timestamp,conversation_id,user_id,roleplay_name,sender_type,message) VALUE (?,?,?,?,?,?)`
-      connection.execute(sql,[new Date(),conversation_id,user_id,roleplay_name,"user",userMessage],(err,results)=>{
+      let sql=`INSERT INTO messages (timestamp,conversation_id,user_id,character_id,roleplay_name,sender_type,message) VALUE (?,?,?,?,?,?,?)`
+      connection.execute(sql,[new Date(),conversation_id,user_id,character_id,roleplay_name,"user",userMessage],(err,results)=>{
         if(err){
             console.log(err)
             res.status(500).send("Database error")
@@ -189,8 +191,8 @@ app.post('/chat/message',verifyToken,async (req,res)=>{
       })
       setTimeout(function(){}, 1000)
       let botMessage = data.choices[0].message.content
-      let sql2=`INSERT INTO messages (timestamp,conversation_id,user_id,roleplay_name,sender_type,message) VALUE (?,?,?,?,?,?)`
-      connection.execute(sql2,[new Date(),conversation_id,user_id,roleplay_name,"bot",botMessage],(err,results)=>{
+      let sql2=`INSERT INTO messages (timestamp,conversation_id,user_id,character_id,roleplay_name,sender_type,message) VALUE (?,?,?,?,?,?,?)`
+      connection.execute(sql2,[new Date(),conversation_id,user_id,character_id,roleplay_name,"bot",botMessage],(err,results)=>{
         if(err){
             console.log(err)
             res.status(500).send("Database error")
@@ -205,6 +207,7 @@ app.post('/chat/message',verifyToken,async (req,res)=>{
 
 app.post('/chat/message/topic',verifyToken,async(req,res)=>{
     let user_id=req.user_id
+    console.log(user_id)
     let conversation_id=req.headers["conversation-id"]
     let content =req.body.data
     let data =[
@@ -248,7 +251,9 @@ app.post('/chat/delete',verifyToken,(req,res)=>{
 })
 
 app.get('/characters',verifyToken,(req,res)=>{
-    let user_id = req.user
+    console.log("getting characters")
+    let user_id = req.user_id
+    console.log(req.user_id)
     let sql=`SELECT * FROM characters WHERE user_id=?`
     connection.execute(sql,[user_id],(err,results)=>{
         if(err){
@@ -256,25 +261,34 @@ app.get('/characters',verifyToken,(req,res)=>{
             res.status(500).send("Unable to retrieve characters")
         }
         console.log(results)
-        res.status(200).send(results)
+        res.status(200).send(JSON.stringify(results))
     })
 })
 
 app.post('/characters/create',verifyToken,upload.single("file"),(req,res)=>{
-    console.log(req)
-    /*let character_name = req.body.character_name
-    let description = req.body.description
-    let user_id = req.user
+    console.log("Image has been received")
+    console.log(req.body.data)
+    let filename = req.file.originalname
+    let parsedData = JSON.parse(req.body.data)
+    let character_name = parsedData.character_name
+    let description = parsedData.description
+    let user_id = req.user_id
+    let debug ={
+        filename,
+        character_name,
+        description,
+        user_id
+    }
+    console.log(debug)
     let sql =`INSERT INTO characters (user_id, character_name, description, imagepath) values (?,?,?,?)`
     connection.execute(sql, [user_id, character_name, description, filename],(err, results)=>{
         if(err){
             console.log(err)
             res.status(500).send("Unable to upload characters")
         }
-        console.log(results)
+        console.log("image succesfully uploaded")
         res.status(200)
-    })*/
-   res.status(500)
+    })
 })
 
 app.post('/character/delete',verifyToken,(req,res)=>{

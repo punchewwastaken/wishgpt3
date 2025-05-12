@@ -1,11 +1,10 @@
-let jwt = document.cookie.split("; ").find((row) => row.startsWith("jwt="))?.split("=")[1]
+var jwt = document.cookie.split("; ").find((row) => row.startsWith("jwt="))?.split("=")[1]
 let responseContainer = document.getElementById("response-container")
 let chatHistoryContainer = document.getElementById("chat-history-container")
 let characterMenu = document.getElementById("character-container")
 let inputMessage = document.getElementById("chat-input")
 let CCmenu = document.getElementById("character-creation-menu")
 let CCmenycontainer = document.getElementById("character-creation-container")
-let emailInput = document.getElementById("input-mail")
 let temporaryChatHistory = []
 let chatHistoryList = []
 let mobileCharMenu = false
@@ -19,11 +18,13 @@ let characterList = [
     {
         character_name:'Mabel',
         description:"Mabel is a fellow classmate at school, she gets confused easily and often. But that only adds to her charm. She loves games and playing games in general, which is the reason for her crippling school grades. She's also reserved and quiet around people she doesn't know, but really open with her friends.",
-        imagepath:'public/images/example.PNG'
+        imagepath:'public/images/example.PNG',
+        character_id:"0"
     },
 ]
 let characterPrompt
 let currentCharacterName
+let currentCharacterId
 let currentcharacter = []
 let currentTimestamp
 let conversation_id
@@ -47,19 +48,20 @@ function logout(){
 
 //get messages from DB
 
-window.onload=async function getMessagesFromDB(){
-    let response = await fetch('/chat/retrieve',{
+window.onload=async function LoadDatafromDB(){
+    //characters
+    let chats = await fetch('/chat/retrieve',{
         method: 'GET',
         headers: {
             'Authorization':`Bearer ${jwt}`,
         },
     })
-    let chats = response.json()
+    chats = await chats.json()
     chats = JSON.stringify(chats)
-    console.log(chats)
-    /*if(chats){
+    if(chats){
         for(let element of chats){
-            let chat={
+            print(element)
+            /*let chat={
                 coonversation_id:null,
                 content:null,
             }
@@ -74,50 +76,47 @@ window.onload=async function getMessagesFromDB(){
             chatHistoryContainer.appendChild(object)
             chat.conversation_id = conversation_id
             chat.content = chatObject
-            chatHistoryList.push(chat)
+            chatHistoryList.push(chat)*/
         }
-    }  */
-}
+    }else{
+        print("No messages found")
+    }
 
-//get characters for this user
-window.onload=async function getCharactersFromDB(){
-    let response = await fetch('/characters',{
+    //characters
+
+    let characters = await fetch('/characters',{
         method:'GET',
-        header:{
-            'Content-type':'Application/json',
+        headers:{
             'Authorization':`Bearer ${jwt}`
         },
     })
-    if(!item){ //check if list is empty
-        print("Empty character list")
-    }else{
+    characters = await characters.json()
+    characters = JSON.stringify(characters)
+    characters = JSON.parse(characters)
+    characterList.push(...characters)
+    print(characterList)
         //add character from db to localstorage
-        response = json.stringify(response.json())
-        for(let item of response){
-            characterList.appent(item)
-            //adding character icon to character menu
+        for(let item of characterList){
+            print(item)
+            if(item.character_id==="0"){
+            }else{
+            //push to char list
             let p = document.createElement("p")
             p.innerHTML = item.character_name
             let charaObj = document.createElement("div")
             charaObj.className = "character-object"
-            charaObj.id = item.character_name
-            charaObj.setAttribute("onclick", `loadCharacter("${charaName}")`)
+            charaObj.id = item.character_id
+            charaObj.setAttribute("onclick", `loadCharacter("${item.character_id}")`)
             let img = new Image()
             img.src = item.imagepath
             img.className = "character-obj-img"
             charaObj.appendChild(p)
             charaObj.appendChild(img)
             characterMenu.appendChild(charaObj)
-            characterList.push(character)
-            let imageDisplay = document.getElementById("cc-upload-preview")
-            imageDisplay.src="/public/images/placeholder.jpg"
-            imageDisplay.alt="Placeholder Image"
-            charaDesc.value=""
-            charaName.value=""
         }
     }
-
 }
+
 //shorthand function for console.log
 function print(input){
     console.log(input)
@@ -150,6 +149,9 @@ async function createCharacter(){
     let charaName = document.getElementById("character-name").value
     let charaImg = document.getElementById("cc-upload-preview").src
     let fileInput = document.getElementById("cc-image");
+    if(!charaDesc||!charaName||!fileInput){
+        alert("Name, file or description is empty! They cannot be empty!")
+    }else{
     let file = fileInput.files[0]; // Get actual file
     let form = new FormData()
     form.append("file", file)
@@ -158,11 +160,11 @@ async function createCharacter(){
         description : charaDesc,
         imagepath : charaImg,
     }
+    console.log(character)
     form.append("data", JSON.stringify(character))
     let response = await fetch("/characters/create", {
         method: "POST",
             headers:{
-            "Content-type":"Application/JSON",
             "Authorization":`Bearer ${jwt}`,
         },
         body: form
@@ -175,7 +177,7 @@ async function createCharacter(){
     let charaObj = document.createElement("div")
     charaObj.className = "character-object"
     charaObj.id = charaName
-    charaObj.setAttribute("onclick", `loadCharacter("${charaName}")`)
+    charaObj.setAttribute("onclick", `loadCharacter("${character_id}")`)
     let img = new Image()
     img.src = charaImg
     img.className = "character-obj-img"
@@ -188,25 +190,44 @@ async function createCharacter(){
     imageDisplay.alt="Placeholder Image"
     charaDesc.value=""
     charaName.value=""
+    }
 }   
-//Load character
-async function loadCharacter(input){
-    for (let item of characterList){
-        if (item.character_name == input){
-            let charaObj = document.getElementById(item.character_name)
-            charaObj.style.backgroundColor="#3b8a99"
-            currentcharacter.push(item)
-            characterPrompt = item.description
-            currentCharacterName = item.character_name
-            print("Current character is selected" + currentCharacterName)
-        }
-        if(currentcharacter.length>=2){
-            let char = document.getElementById(`${currentcharacter[0].character_name}`)
-            char.style.backgroundColor = "rgb(108, 213, 216)"
-            currentcharacter.shift()
-        }
+
+//quick chatgpt function to actually handle select/deselect and not just changing between characters. Also resets conversation_id so that's cool
+async function loadCharacter(input) {
+    let selectedCharacter = characterList.find(item => item.character_id == input);
+    
+    if (!selectedCharacter) return; // Character not found
+
+    let charaObj = document.getElementById(selectedCharacter.character_id);
+
+    // Check if the character is already selected
+    if (currentcharacter.includes(selectedCharacter)) {
+        // Deselect the character
+        charaObj.style.backgroundColor = "rgb(108, 213, 216)"; // Default color
+        currentcharacter = currentcharacter.filter(item => item.character_id !== input); // Remove from list
+        characterPrompt = ""; // Reset prompt
+        currentCharacterName = "";
+        currentCharacterId = "";
+        conversation_id = ""; // Reset conversation_id
+        temporaryChatHistory=[]
+        responseContainer.replaceChildren()
+        print("Character deselected: " + selectedCharacter.character_name);
+    } else {
+        // Select the character
+        charaObj.style.backgroundColor = "#3b8a99"; // Selected color
+        currentcharacter.push(selectedCharacter);
+        characterPrompt = selectedCharacter.description;
+        currentCharacterName = selectedCharacter.character_name;
+        currentCharacterId = selectedCharacter.character_id;
+        conversation_id = ""; // Reset conversation_id when switching
+        temporaryChatHistory=[]
+        responseContainer.replaceChildren()
+        print("Character selected: " + selectedCharacter.character_name);
     }
 }
+
+
 //Load chat history
 function loadChat(inputValue){
     responseContainer.replaceChildren()
@@ -229,7 +250,6 @@ function loadChat(inputValue){
         } catch (error){
             console.log("no first child found.")
         }
-        
     }
 }
 //delete saved chat history
@@ -321,7 +341,8 @@ async function generateText(input){
                 "Content-type": "application/json",
                 "user-name": `${user}`,
                 "Authorization":`Bearer ${jwt}`,
-                "conversation-id":`${conversation_id}`
+                "conversation-id":`${conversation_id}`,
+                "character-id":`${currentCharacterId}`
             },
             body: JSON.stringify(request)
         })
@@ -336,8 +357,6 @@ async function generateText(input){
         inputMessage.innerHTML = ""
         output = marked.parse(output)
         return output
-        
-    
 }
 function makeChatObjects(user, bot){
     if (user&&!bot){
