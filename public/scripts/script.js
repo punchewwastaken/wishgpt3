@@ -57,34 +57,46 @@ window.onload=async function LoadDatafromDB(){
         },
     })
     chats = await chats.json()
-    chats = JSON.stringify(chats)
-    print(chats)
+    print(Array.isArray(chats))
     if(chats){
-        for(let element of chats){
-            
-            /*let chat={
-                coonversation_id:null,
-                content:null,
-            }
+        // Group messages by conversation_id
+        let groupedMessages = chats.reduce((acc, msg) => {
+        if (!acc[msg.conversation_id]) {
+            acc[msg.conversation_id] = [];
+        }
+        acc[msg.conversation_id].push({ 
+            content: `${msg.message}`,
+            role: `${msg.sender_type}`,
+        });
+        return acc;
+        }, {});
+        // If you want it as an array of conversations
+        const conversationsArray = Object.entries(groupedMessages).map(([conversationId, messages]) => ({
+        conversation_id: conversationId,
+        messages,
+        }));
+        console.log(conversationsArray)
+        for (item of conversationsArray){
+            console.log(item)
+            let icon = document.getElementById("save-loading-icon")
+            icon.style.display="block"
             let p = document.createElement("p")
-            let conversation_id = element.conversation_id
-            let chatName = element.topic||"sample text"
+            let conversation_id = item.conversation_id
             let object = document.createElement("div")
+            object.className="chat-history-object"
             object.innerHTML=`<i onclick="" class="fa-solid fa-cloud-arrow-down"></i><i onclick="deleteChat('${conversation_id}')" class="fa-solid fa-trash"></i>`
+            let chatName = item.topic||item.conversation_id
             p.innerHTML=`${chatName}`
             object.appendChild(p)
             object.setAttribute("onclick", `loadChat('${conversation_id}')`)
             chatHistoryContainer.appendChild(object)
-            chat.conversation_id = conversation_id
-            chat.content = chatObject
-            chatHistoryList.push(chat)*/
-        }
-    }else{
+            chatHistoryList.push(item)
+            print(chatHistoryList)
+            }
+        }else{
         print("No messages found")
     }
-
     //characters
-
     let characters = await fetch('/characters',{
         method:'GET',
         headers:{
@@ -95,10 +107,8 @@ window.onload=async function LoadDatafromDB(){
     characters = JSON.stringify(characters)
     characters = JSON.parse(characters)
     characterList.push(...characters)
-    print(characterList)
         //add character from db to localstorage
         for(let item of characterList){
-            print(item)
             if(item.character_id==="0"){
             }else{
             //push to char list
@@ -116,6 +126,17 @@ window.onload=async function LoadDatafromDB(){
             characterMenu.appendChild(charaObj)
         }
     }
+}
+
+async function deleteCharacter(input){
+    let character_id=input
+    let response = await fetch('/characters/delete',{
+        method:'POST',
+        headers:{
+            'Authorization':`Bearer ${jwt}`,
+            'character_id':`${character_id}`
+        }
+    })
 }
 
 //shorthand function for console.log
@@ -160,7 +181,7 @@ async function createCharacter(){
         character_name : charaName,
         description : charaDesc,
         imagepath : charaImg,
-        character_id:0
+        character_id:0,
     }
     console.log(character)
     form.append("data", JSON.stringify(character))
@@ -173,28 +194,29 @@ async function createCharacter(){
     })
     if(!response.ok){
         alert("Failed to upload")
-    }
-    response = await response.json()
-    response = JSON.stringify(response)
-    print(response)
-    let p = document.createElement("p")
-    p.innerHTML = charaName
-    let charaObj = document.createElement("div")
-    charaObj.className = "character-object"
-    charaObj.id = charaName
-    charaObj.setAttribute("onclick", `loadCharacter("${character_id}")`)
-    let img = new Image()
-    img.src = charaImg
-    img.className = "character-obj-img"
-    charaObj.appendChild(p)
-    charaObj.appendChild(img)
-    characterMenu.appendChild(charaObj)
-    characterList.push(character)
-    let imageDisplay = document.getElementById("cc-upload-preview")
-    imageDisplay.src="/public/images/placeholder.jpg"
-    imageDisplay.alt="Placeholder Image"
-    charaDesc.value=""
-    charaName.value=""
+    }else{
+            response = await response.json()
+            response = JSON.stringify(response)
+            print(response)
+            let p = document.createElement("p")
+            p.innerHTML = charaName
+            let charaObj = document.createElement("div")
+            charaObj.className = "character-object"
+            charaObj.id = charaName
+            charaObj.setAttribute("onclick", `loadCharacter("${character_id}")`)
+            let img = new Image()
+            img.src = charaImg
+            img.className = "character-obj-img"
+            charaObj.appendChild(p)
+            charaObj.appendChild(img)
+            characterMenu.appendChild(charaObj)
+            characterList.push(character)
+            let imageDisplay = document.getElementById("cc-upload-preview")
+            imageDisplay.src="/public/images/placeholder.jpg"
+            imageDisplay.alt="Placeholder Image"
+            charaDesc.value=""
+            charaName.value=""
+        }
     }
 }   
 
@@ -235,12 +257,15 @@ async function loadCharacter(input) {
 
 //Load chat history
 function loadChat(inputValue){
+    print("loading chat "+inputValue)
     responseContainer.replaceChildren()
-    for (let item of chatHistoryList){
+    for (let chat of chatHistoryList){
         let user
         let bot
-        if (item.date == inputValue){
-            item.content.forEach(item => {
+        if (chat.conversation_id == inputValue){
+            conversation_id=chat.conversation_id
+            console.log(conversation_id)
+            for(item of chat.messages) {
                 temporaryChatHistory.push(item)
                 if (item.role === "user") {
                     user = item.content;
@@ -248,19 +273,19 @@ function loadChat(inputValue){
                     bot = item.content;
                 }
                 makeChatObjects(user, bot)
-            });
-        } 
-        try{
-            responseContainer.removeChild(responseContainer.firstElementChild)
+            };
+        }
+    }try{
+            responseContainer.removeChild(responseContainer.firstChild)
+            print(responseContainer)
         } catch (error){
             console.log("no first child found.")
         }
-    }
 }
 //delete saved chat history
 function deleteChat(inputValue){
     for (const [index, item] of chatHistoryList.entries()){
-        if (item.date == inputValue){
+        if (item.conversation_id == inputValue){
             let chatObject = document.getElementById(`${item.date}`)
             chatHistoryList.splice(index, 1)
             chatObject.remove()
@@ -338,7 +363,6 @@ async function generateText(input){
         mode:"instruct",
         model:"llama3.2",
     }
-
         let user = document.getElementById("roleplay-name").value||""
         let response = await fetch(URL, {
             method: "POST",

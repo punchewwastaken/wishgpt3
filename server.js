@@ -131,10 +131,7 @@ app.get('/chat/retrieve',verifyToken,(req,res)=>{
     let user_id = req.user_id
     console.log("Retrieving chats from: "+req.user)
     // Validate user_id
-    if (!user_id) {
-        return res.status(400).send("Invalid or missing user ID");
-    }
-    let sql=`SELECT * FROM messages WHERE user_id=? ORDER BY timestamp ASC`
+    let sql=`SELECT * FROM messages WHERE user_id='?' ORDER BY timestamp ASC`
     connection.execute(sql,[user_id],(err, results)=>{
         if(err){
             console.log(err)
@@ -191,7 +188,7 @@ app.post('/chat/message',verifyToken,async (req,res)=>{
       setTimeout(function(){}, 1000)
       let botMessage = data.choices[0].message.content
       let sql2=`INSERT INTO messages (timestamp,conversation_id,user_id,character_id,roleplay_name,sender_type,message) VALUE (?,?,?,?,?,?,?)`
-      connection.execute(sql2,[new Date(),conversation_id,user_id,character_id,roleplay_name,"bot",botMessage],(err,results)=>{
+      connection.execute(sql2,[new Date(),conversation_id,user_id,character_id,roleplay_name,"assistant",botMessage],(err,results)=>{
         if(err){
             console.log(err)
             res.status(500).send("Database error")
@@ -289,7 +286,7 @@ app.post('/characters/create',verifyToken,upload.single("file"),(req,res)=>{
     })
 })
 
-app.post('/character/delete',verifyToken,(req,res)=>{
+app.post('/characters/delete',verifyToken,(req,res)=>{
     let user_id=req.user_id
     let character_id=req.body.character_id
     let sql = `DROP * FROM characters WHERE character_id=?`
