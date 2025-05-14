@@ -75,6 +75,11 @@ async function verifyToken(req, res, next) {
     }
 }
 
+//check if is hash-like string
+function isSHA256Hash(str) {
+    return /^[a-f0-9]{64}$/i.test(str);
+}
+
 //routes
 
 app.get('/',(req,res)=>{
@@ -145,14 +150,18 @@ app.get('/chat/retrieve',verifyToken,(req,res)=>{
 app.post('/chat/message',verifyToken,async (req,res)=>{
     let conversation_id = req.headers["conversation-id"]
     let character_id = req.headers["character-id"]
-    console.log(conversation_id)
     if(!conversation_id){
         let now = new Date()
         conversation_id = `${now}`
         console.log(conversation_id)
     }
+    if(!isSHA256Hash(conversation_id)){
+        console.log("isnothashed")
+            conversation_id = hash.sha256(conversation_id)
+    }else{
+        conversation_id = conversation_id
+    }
     //commenting away because this implementation scrambles the conversation_id each time it is reloaded
-    //conversation_id = hash.sha256(conversation_id)
     let user_id = req.user
     let roleplay_name = req.headers["roleplay-name"]
     if(!roleplay_name){
