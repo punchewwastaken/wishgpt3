@@ -303,8 +303,9 @@ app.post('/characters/delete',verifyToken,(req,res)=>{
         if(err){
             console.log(err)
             res.status(500).send("Unable to delete character")
+        }else{
+        res.status(200).send("yep its deleted")
         }
-        res.status(200)
     })
 })
 

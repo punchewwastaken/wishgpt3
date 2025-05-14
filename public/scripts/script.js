@@ -90,10 +90,8 @@ async function loadMessages() {
             'Authorization': `Bearer ${jwt}`,
         },
     });
-
     chats = await chats.json();
     console.log(Array.isArray(chats));
-
     if (chats) {
         // Group messages by conversation_id
         let groupedMessages = chats.reduce((acc, msg) => {
@@ -106,19 +104,15 @@ async function loadMessages() {
             });
             return acc;
         }, {});
-
         // Convert grouped messages into an array format
         const conversationsArray = Object.entries(groupedMessages).map(([conversationId, messages]) => ({
             conversation_id: conversationId,
             messages,
         }));
-
         console.log(conversationsArray);
-
         for (const item of conversationsArray) {
             console.log(item);
             let conversation_id = item.conversation_id;
-
             // Check if conversation already exists in chatHistoryList
             if (!chatHistoryList.some(chat => chat.conversation_id === conversation_id)) {
                 // Also check if the HTML element already exists
@@ -135,7 +129,6 @@ async function loadMessages() {
                     object.setAttribute("onclick", `loadChat('${conversation_id}')`);
                     chatHistoryContainer.appendChild(object);
                 }
-
                 chatHistoryList.push(item);
                 console.log(chatHistoryList);
             }
@@ -145,8 +138,8 @@ async function loadMessages() {
     }
 }
 
-
 async function deleteCharacter(input){
+    print("deleting a charavyer")
     let character_id=input
     let response = await fetch('/characters/delete',{
         method:'POST',
@@ -161,7 +154,6 @@ async function deleteCharacter(input){
     }else{
         print("character not deleted lmfao")
     }
-    window.locaation.reload()
 }
 
 //shorthand function for console.log
@@ -323,44 +315,7 @@ async function deleteChat(inputValue){
         print("not good we are cooked")
     }
 }
-/* unneeded as chats are automatically saved and retrieved
-//save current chat history to new object
-async function saveChatHistory(){
-    let icon = document.getElementById("save-loading-icon")
-    icon.style.display="block"
-    let chatObject = Array.from(temporaryChatHistory)
-    let arr = []
-    //format conversation for AI to conclude
-    chatObject.forEach(item =>{ 
-        let val = `Role: ${item.role}, Message: ${item.content}`
-        arr.push(val)
-    })
-    let chatName = await generateText(JSON.stringify(arr), true) //create chat history name based on topic/content
-    let chat = {
-        date : null,
-        content : null,
-    }
-    let date = new Date().toISOString()
-    let object = document.createElement("div")
-    let p = document.createElement("p")
-    object.id=`${date}`
-    object.className="chat-history-object"
-    object.innerHTML=`<i onclick="" class="fa-solid fa-cloud-arrow-down"></i><i onclick="deleteChat('${date}')" class="fa-solid fa-trash"></i>`
-    if (chatObject == undefined){
-        p.innerHTML=`${date}`
-    } else {
-        p.innerHTML=`${chatName}`
-    }
-    object.appendChild(p)
-    object.setAttribute("onclick", `loadChat('${date}')`)
-    chatHistoryContainer.appendChild(object)
-    chat.date = date
-    chat.content = chatObject
-    chatHistoryList.push(chat)
-    clearChatHistory()
-    responseContainer.replaceChildren()
-    icon.style.display="none"
-}*/
+
 //write to current chat history
 function writeToChatHistory(user, model){
     let userChat = {"role": "user", "content":`${user}`}
