@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Apr 30, 2025 at 10:14 PM
+-- Generation Time: May 15, 2025 at 12:00 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -58,16 +58,8 @@ CREATE TABLE `messages` (
 --
 
 INSERT INTO `messages` (`message_id`, `timestamp`, `conversation_id`, `user_id`, `character_id`, `roleplay_name`, `topic`, `sender_type`, `message`) VALUES
-(1, '0000-00-00 00:00:00', '2025-04-26 18:02:06', 0, 0, 'admin', '', 'user', 'what\'s 9+10?'),
-(2, '0000-00-00 00:00:00', '2025-04-26 18:02:06', 0, 0, 'admin', '', 'bot', '9 + 10 = 19'),
-(3, '0000-00-00 00:00:00', '2025-04-26 18:08:11', 0, 0, 'admin', '', 'user', 'Hello!'),
-(4, '0000-00-00 00:00:00', '2025-04-26 18:08:11', 0, 0, 'admin', '', 'bot', '*nervous smile* Oh, hi... I wasn\'t expecting anyone to talk to me right now. Sorry if I\'m being weird, I was just trying to finish this math problem and got really stuck *fidgets with pencil*'),
-(5, '0000-00-00 00:00:00', '2025-04-26 18:08:35', 0, 0, 'admin', '', 'user', 'Oh? What sort of math problem?'),
-(6, '0000-00-00 00:00:00', '2025-04-26 18:08:35', 0, 0, 'admin', '', 'bot', '*looks up at you warily, seeming a bit uncertain how much to share* Um, it\'s just... algebra, I think. We\'re supposed to be solving for x in this one equation and I just can\'t seem to get the right answer *taps pen on desk nervously*'),
-(7, '0000-00-00 00:00:00', '2025-04-26 18:14:30', 0, 0, 'admin', '', 'user', 'Hello!'),
-(8, '0000-00-00 00:00:00', '2025-04-26 18:14:30', 0, 0, 'admin', '', 'bot', '*looks up from her notebook, slightly startled* Oh, h-hi... sorry I didn\'t even notice you were there. We were supposed to be working on math homework together, but I think I got distracted by that puzzle game on my phone *holds up phone with puzzle game open*.'),
-(9, '0000-00-00 00:00:00', '2025-04-26 18:31:59', 0, 0, 'admin', '', 'user', 'Hello!'),
-(10, '0000-00-00 00:00:00', '2025-04-26 18:31:59', 0, 0, 'admin', '', 'bot', '*looks up from drawing on piece of paper, slightly startled* Oh, hi... *pauses to collect thoughts* I was just working on this puzzle... *holds up a jumbled mess of pieces* Do you want to see?');
+(44, '2025-05-14 23:43:54', 'b1a3e2b035cd891a1a421750930d33b5b351c40c9fa8cad2320a17092391ec8a', 1, 0, 'punchew', '', 'user', 'Hello!'),
+(45, '2025-05-14 23:43:54', 'b1a3e2b035cd891a1a421750930d33b5b351c40c9fa8cad2320a17092391ec8a', 1, 0, 'punchew', '', 'assistant', 'H-hi... *gets nervous and fumbles with hands* I\'m, um, happy to see you...');
 
 -- --------------------------------------------------------
 
@@ -87,8 +79,8 @@ CREATE TABLE `user` (
 --
 
 INSERT INTO `user` (`user_id`, `user`, `password`, `other`) VALUES
-(1, 'punchew', '56d97662b3b5a82e6fa22a5cca14b3d470ce46f3d00284a3e62f40555177b9ac', ''),
-(2, 'admin', 'ff20beff1eda319103899e7e072436063ae600757073101ffad5a13be39cbc06', '');
+(0, 'admin', 'ff20beff1eda319103899e7e072436063ae600757073101ffad5a13be39cbc06', ''),
+(1, 'test', '56d97662b3b5a82e6fa22a5cca14b3d470ce46f3d00284a3e62f40555177b9ac', '');
 
 --
 -- Indexes for dumped tables
@@ -126,13 +118,13 @@ ALTER TABLE `characters`
 -- AUTO_INCREMENT for table `messages`
 --
 ALTER TABLE `messages`
-  MODIFY `message_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+  MODIFY `message_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=46;
 
 --
 -- AUTO_INCREMENT for table `user`
 --
 ALTER TABLE `user`
-  MODIFY `user_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `user_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
