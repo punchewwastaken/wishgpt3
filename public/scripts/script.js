@@ -49,53 +49,7 @@ function logout(){
 //get messages from DB
 
 window.onload=async function LoadDatafromDB(){
-    //characters
-    let chats = await fetch('/chat/retrieve',{
-        method: 'GET',
-        headers: {
-            'Authorization':`Bearer ${jwt}`,
-        },
-    })
-    chats = await chats.json()
-    print(Array.isArray(chats))
-    if(chats){
-        // Group messages by conversation_id
-        let groupedMessages = chats.reduce((acc, msg) => {
-        if (!acc[msg.conversation_id]) {
-            acc[msg.conversation_id] = [];
-        }
-        acc[msg.conversation_id].push({ 
-            content: `${msg.message}`,
-            role: `${msg.sender_type}`,
-        });
-        return acc;
-        }, {});
-        // If you want it as an array of conversations
-        const conversationsArray = Object.entries(groupedMessages).map(([conversationId, messages]) => ({
-        conversation_id: conversationId,
-        messages,
-        }));
-        console.log(conversationsArray)
-        for (item of conversationsArray){
-            console.log(item)
-            let icon = document.getElementById("save-loading-icon")
-            icon.style.display="block"
-            let p = document.createElement("p")
-            let conversation_id = item.conversation_id
-            let object = document.createElement("div")
-            object.className="chat-history-object"
-            object.innerHTML=`<i onclick="" class="fa-solid fa-cloud-arrow-down"></i><i onclick="deleteChat('${conversation_id}')" class="fa-solid fa-trash"></i>`
-            let chatName = item.topic||item.conversation_id
-            p.innerHTML=`${chatName}`
-            object.appendChild(p)
-            object.setAttribute("onclick", `loadChat('${conversation_id}')`)
-            chatHistoryContainer.appendChild(object)
-            chatHistoryList.push(item)
-            print(chatHistoryList)
-            }
-        }else{
-        print("No messages found")
-    }
+    await loadMessages()
     //characters
     let characters = await fetch('/characters',{
         method:'GET',
@@ -122,11 +76,75 @@ window.onload=async function LoadDatafromDB(){
             img.src = item.imagepath
             img.className = "character-obj-img"
             charaObj.appendChild(p)
+            charaObj.innerHTML+=`<i onclick="deleteCharacter('${item.character_id}')" class="fa-solid fa-trash"></i>`
             charaObj.appendChild(img)
             characterMenu.appendChild(charaObj)
         }
     }
 }
+
+async function loadMessages() {
+    let chats = await fetch('/chat/retrieve', {
+        method: 'GET',
+        headers: {
+            'Authorization': `Bearer ${jwt}`,
+        },
+    });
+
+    chats = await chats.json();
+    console.log(Array.isArray(chats));
+
+    if (chats) {
+        // Group messages by conversation_id
+        let groupedMessages = chats.reduce((acc, msg) => {
+            if (!acc[msg.conversation_id]) {
+                acc[msg.conversation_id] = [];
+            }
+            acc[msg.conversation_id].push({
+                content: msg.message,
+                role: msg.sender_type,
+            });
+            return acc;
+        }, {});
+
+        // Convert grouped messages into an array format
+        const conversationsArray = Object.entries(groupedMessages).map(([conversationId, messages]) => ({
+            conversation_id: conversationId,
+            messages,
+        }));
+
+        console.log(conversationsArray);
+
+        for (const item of conversationsArray) {
+            console.log(item);
+            let conversation_id = item.conversation_id;
+
+            // Check if conversation already exists in chatHistoryList
+            if (!chatHistoryList.some(chat => chat.conversation_id === conversation_id)) {
+                // Also check if the HTML element already exists
+                if (!document.getElementById(conversation_id)) {
+                    let p = document.createElement("p");
+                    let object = document.createElement("div");
+                    object.className = "chat-history-object";
+                    object.innerHTML = `<i onclick="" class="fa-solid fa-cloud-arrow-down"></i><i onclick="deleteChat('${conversation_id}')" class="fa-solid fa-trash"></i>`;
+                    
+                    let chatName = item.topic || item.conversation_id;
+                    object.id = conversation_id;
+                    p.innerHTML = `${chatName}`;
+                    object.appendChild(p);
+                    object.setAttribute("onclick", `loadChat('${conversation_id}')`);
+                    chatHistoryContainer.appendChild(object);
+                }
+
+                chatHistoryList.push(item);
+                console.log(chatHistoryList);
+            }
+        }
+    } else {
+        console.log("No messages found");
+    }
+}
+
 
 async function deleteCharacter(input){
     let character_id=input
@@ -137,6 +155,13 @@ async function deleteCharacter(input){
             'character_id':`${character_id}`
         }
     })
+    if(response.ok){
+        print("character deleted")
+        window.location.reload()
+    }else{
+        print("character not deleted lmfao")
+    }
+    window.locaation.reload()
 }
 
 //shorthand function for console.log
@@ -195,33 +220,15 @@ async function createCharacter(){
     if(!response.ok){
         alert("Failed to upload")
     }else{
-            response = await response.json()
-            response = JSON.stringify(response)
-            print(response)
-            let p = document.createElement("p")
-            p.innerHTML = charaName
-            let charaObj = document.createElement("div")
-            charaObj.className = "character-object"
-            charaObj.id = charaName
-            charaObj.setAttribute("onclick", `loadCharacter("${character_id}")`)
-            let img = new Image()
-            img.src = charaImg
-            img.className = "character-obj-img"
-            charaObj.appendChild(p)
-            charaObj.appendChild(img)
-            characterMenu.appendChild(charaObj)
-            characterList.push(character)
-            let imageDisplay = document.getElementById("cc-upload-preview")
-            imageDisplay.src="/public/images/placeholder.jpg"
-            imageDisplay.alt="Placeholder Image"
-            charaDesc.value=""
-            charaName.value=""
+            window.location.reload()
         }
     }
 }   
 
 //quick chatgpt function to actually handle select/deselect and not just changing between characters. Also resets conversation_id so that's cool
 async function loadCharacter(input) {
+    await loadMessages();
+
     let selectedCharacter = characterList.find(item => item.character_id == input);
     
     if (!selectedCharacter) return; // Character not found
@@ -229,7 +236,7 @@ async function loadCharacter(input) {
     let charaObj = document.getElementById(selectedCharacter.character_id);
 
     // Check if the character is already selected
-    if (currentcharacter.includes(selectedCharacter)) {
+    if (currentcharacter.some(item => item.character_id === input)) {
         // Deselect the character
         charaObj.style.backgroundColor = "rgb(108, 213, 216)"; // Default color
         currentcharacter = currentcharacter.filter(item => item.character_id !== input); // Remove from list
@@ -237,34 +244,46 @@ async function loadCharacter(input) {
         currentCharacterName = "";
         currentCharacterId = "";
         conversation_id = ""; // Reset conversation_id
-        temporaryChatHistory=[]
-        responseContainer.replaceChildren()
-        print("Character deselected: " + selectedCharacter.character_name);
+        temporaryChatHistory = [];
+        responseContainer.replaceChildren();
+        console.log("Character deselected: " + selectedCharacter.character_name);
     } else {
-        // Select the character
+        // Reset color of the previously selected character
+        if (currentcharacter.length > 0) {
+            let previousCharacter = currentcharacter[0]; // Assuming only one character can be active
+            let previousCharaObj = document.getElementById(previousCharacter.character_id);
+            if (previousCharaObj) {
+                previousCharaObj.style.backgroundColor = "rgb(108, 213, 216)"; // Default color
+            }
+            currentcharacter = []; // Clear previous selection
+        }
+
+        // Select the new character
         charaObj.style.backgroundColor = "#3b8a99"; // Selected color
         currentcharacter.push(selectedCharacter);
+        
+        // Update temp variables
         characterPrompt = selectedCharacter.description;
         currentCharacterName = selectedCharacter.character_name;
         currentCharacterId = selectedCharacter.character_id;
         conversation_id = ""; // Reset conversation_id when switching
-        temporaryChatHistory=[]
-        responseContainer.replaceChildren()
-        print("Character selected: " + selectedCharacter.character_name);
+        temporaryChatHistory = [];
+        responseContainer.replaceChildren();
+        console.log("Character selected: " + selectedCharacter.character_name);
     }
 }
 
 
+
 //Load chat history
 function loadChat(inputValue){
-    print("loading chat "+inputValue)
     responseContainer.replaceChildren()
     for (let chat of chatHistoryList){
         let user
         let bot
         if (chat.conversation_id == inputValue){
             conversation_id=chat.conversation_id
-            console.log(conversation_id)
+            console.log("chat conversation id is : "+conversation_id)
             for(item of chat.messages) {
                 temporaryChatHistory.push(item)
                 if (item.role === "user") {
@@ -283,15 +302,28 @@ function loadChat(inputValue){
         }
 }
 //delete saved chat history
-function deleteChat(inputValue){
+async function deleteChat(inputValue){
     for (const [index, item] of chatHistoryList.entries()){
         if (item.conversation_id == inputValue){
-            let chatObject = document.getElementById(`${item.date}`)
+            let chatObject = document.getElementById(`${item.conversation_id}`)
             chatHistoryList.splice(index, 1)
             chatObject.remove()
         }
     }
+    let response = await fetch('/chat/delete',{
+        method:'POST',
+        headers:{
+            'Authorization':`Bearer ${jwt}`,
+            'conversation-id':`${inputValue}`
+        },
+    })
+    if(response.ok){
+        print("all good, its gone deleted yeeted")
+    }else{
+        print("not good we are cooked")
+    }
 }
+/* unneeded as chats are automatically saved and retrieved
 //save current chat history to new object
 async function saveChatHistory(){
     let icon = document.getElementById("save-loading-icon")
@@ -328,7 +360,7 @@ async function saveChatHistory(){
     clearChatHistory()
     responseContainer.replaceChildren()
     icon.style.display="none"
-}
+}*/
 //write to current chat history
 function writeToChatHistory(user, model){
     let userChat = {"role": "user", "content":`${user}`}
@@ -343,13 +375,13 @@ function clearChatHistory(){
 //Generate response
 async function generateText(input){
     let msg
-    print(conversation_id)
     if(!conversation_id){
         let now = new Date()
         conversation_id = `${now}`
-        print(conversation_id)
+        print("Speaking chat id :"+conversation_id)
     } else if (conversation_id){
         conversation_id = conversation_id
+        print("current convo id: "+ conversation_id)
     }
     let history = temporaryChatHistory
     let botPrompt = {"role": "system", "content":`${characterPrompt}.\nThis is a roleplay between User and ${currentCharacterName}, continue the conversation, write a single short reply as ${currentCharacterName}\n`}
@@ -418,7 +450,7 @@ let goChat = async function() {
     let user = inputMessage.value
     let loadingIcon = document.getElementById("chat-loading-icon")
     loadingIcon.style.display='block'
-    let bot = await generateText(inputMessage.value)
+    let bot = await generateText(user)
     inputMessage.value=''
     makeChatObjects(user, bot)
     loadingIcon.style.display='none'

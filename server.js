@@ -151,15 +151,15 @@ app.post('/chat/message',verifyToken,async (req,res)=>{
         conversation_id = `${now}`
         console.log(conversation_id)
     }
-    conversation_id = hash.sha256(conversation_id)
+    //commenting away because this implementation scrambles the conversation_id each time it is reloaded
+    //conversation_id = hash.sha256(conversation_id)
     let user_id = req.user
     let roleplay_name = req.headers["roleplay-name"]
     if(!roleplay_name){
         roleplay_name=req.user
     }
     try {
-        console.log(req.body)
-      const response = await fetch(URL, {
+        const response = await fetch(URL, {
           method: 'POST',
           headers: {
               'Content-Type': 'application/json',
@@ -236,7 +236,7 @@ app.post('/chat/message/topic',verifyToken,async(req,res)=>{
 app.post('/chat/delete',verifyToken,(req,res)=>{
     let user_id = req.user
     let conversation_id = req.headers["conversation-id"]
-    let sql=`DELETE FROM messages WHERE conversation_id=?, user_id=?`
+    let sql=`DELETE FROM messages WHERE conversation_id=? AND user_id=?`
     connection.execute(sql, [conversation_id,user_id], (err,results)=>{
         if(err){
             console.log(err)
@@ -288,13 +288,14 @@ app.post('/characters/create',verifyToken,upload.single("file"),(req,res)=>{
 
 app.post('/characters/delete',verifyToken,(req,res)=>{
     let user_id=req.user_id
-    let character_id=req.body.character_id
-    let sql = `DROP * FROM characters WHERE character_id=?`
+    let character_id=req.headers['character_id']
+    let sql = `DELETE FROM characters WHERE character_id=?`
     connection.execute(sql,[character_id],(err, results)=>{
         if(err){
             console.log(err)
             res.status(500).send("Unable to delete character")
         }
+        res.status(200)
     })
 })
 
