@@ -14,12 +14,20 @@ async function createAccount(){
                 'Content-type':'application/JSON'
             },
             body:JSON.stringify(info)
+        })        
+        .then(response => {
+            if (response.status === 409) {
+                console.log('User already exists!');
+                alert("Username allready exists!")
+            } else if (response.ok) {
+                console.log('Account created successfully!');
+                window.location.href = "../login.html";
+            } else {
+                console.log('An error occurred:', response.status);
+            }
         })
-        if(response.ok){
-            alert("Account created!")
-            window.location.replace("../login.html")
-        }else{
-            alert("Server error!")
-        }
+        .catch(error => {
+            console.error('Network error:', error);
+        });
     }
 }

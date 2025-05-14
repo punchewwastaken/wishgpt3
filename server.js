@@ -50,7 +50,7 @@ async function createToken(payload) {
 async function verifyToken(req, res, next) {
     try {
         let authHeader = req.headers["authorization"]
-        if (!authHeader){console.log("no token");console.log(authHeader); return res.status(401).send("No token provided")}
+        if (!authHeader){console.log("no token");console.log(authHeader); return res.status(401).redirect("http://localhost:3000/403.html")}
         let token = authHeader.split(" ")[1]; // Extract JWT from "Bearer <token>"
         let { payload } = await jwtVerify(token, secret);
         req.user_id = payload.user; // Attach decoded user data to request
@@ -112,21 +112,34 @@ app.post('/login/login',(req,res)=>{
     })
 })
 
-app.post('/login/signup',(req, res)=>{
-    let username = req.body.username
-    let password = req.body.password
-    let hashpw = hashString(username, password)
-    let sql = `INSERT INTO user (user, password) VALUES (?,?)`
-    connection.execute(sql, [username, hashpw],(err, results)=>{
-        if(err){
-            console.log(err)
-            res.status(500).send("Unable to create account!")
-        }else{
-            console.log("account created "+ username +" " + password)
-            res.status(200)
+app.post('/login/signup', (req, res) => {
+    let username = req.body.username;
+    let password = req.body.password;
+    let hashpw = hashString(username, password);
+
+    // First, check if the user already exists
+    let checkSql = `SELECT * FROM user WHERE user = ?`;
+    connection.execute(checkSql, [username], (err, results) => {
+        if (err) {
+            console.error(err);
+            return res.status(500).send("Error checking existing users.");
         }
-    })
-})
+        if (results.length > 0) {
+            // User already exists, return appropriate status
+            return res.status(409).send("User already exists!"); // 409 Conflict
+        }
+        // If user doesn't exist, proceed with insertion
+        let insertSql = `INSERT INTO user (user, password) VALUES (?, ?)`;
+        connection.execute(insertSql, [username, hashpw], (err, results) => {
+            if (err) {
+                console.error(err);
+                return res.status(500).send("Unable to create account!");
+            }
+            console.log(`Account created for ${username}`);
+            res.status(201).send("Account successfully created!"); // 201 Created
+        });
+    });
+});
 
 app.get('/chat',(req,res)=>{
     res.status(200).sendFile(path.join(__dirname+"/public/chat.html"))
@@ -136,15 +149,27 @@ app.get('/chat/retrieve',verifyToken,(req,res)=>{
     let user_id = req.user_id
     console.log("Retrieving chats from: "+req.user)
     // Validate user_id
-    let sql=`SELECT * FROM messages WHERE user_id='?' ORDER BY timestamp ASC`
-    connection.execute(sql,[user_id],(err, results)=>{
-        if(err){
-            console.log(err)
-            res.status(500).send("Internal server error: "+ err)
-        }
-        console.log(results)
-        res.status(200).send(results)
-    })
+    if(user_id===0){
+        let sql=`SELECT * FROM messages ORDER BY timestamp ASC`
+        connection.execute(sql,(err, results)=>{
+            if(err){
+                console.log(err)
+                res.status(500).send("Internal server error: "+ err)
+            }
+            console.log(results)
+            res.status(200).send(results)
+        })
+    }else{
+        let sql=`SELECT * FROM messages WHERE user_id='?' ORDER BY timestamp ASC`
+        connection.execute(sql,[user_id],(err, results)=>{
+            if(err){
+                console.log(err)
+                res.status(500).send("Internal server error: "+ err)
+            }
+            res.status(200).send(results)
+            
+        })
+    }
 })
 
 app.post('/chat/message',verifyToken,async (req,res)=>{
@@ -162,7 +187,7 @@ app.post('/chat/message',verifyToken,async (req,res)=>{
         conversation_id = conversation_id
     }
     //commenting away because this implementation scrambles the conversation_id each time it is reloaded
-    let user_id = req.user
+    let user_id = req.user_id
     let roleplay_name = req.headers["roleplay-name"]
     if(!roleplay_name){
         roleplay_name=req.user
@@ -203,6 +228,8 @@ app.post('/chat/message',verifyToken,async (req,res)=>{
             res.status(500).send("Database error")
         }
       })
+      //add topic generation code
+
       res.status(200).send(data)
   } catch (error) {
       console.error('Error routing request to provider:', error);
@@ -245,6 +272,16 @@ app.post('/chat/message/topic',verifyToken,async(req,res)=>{
 app.post('/chat/delete',verifyToken,(req,res)=>{
     let user_id = req.user
     let conversation_id = req.headers["conversation-id"]
+    if(user_id=="0"){
+        let sql=`DELETE FROM messages WHERE conversation_id=?`
+        connection.execute(sql, [conversation_id], (err,results)=>{
+            if(err){
+                console.log(err)
+                res.status(500).send("Internal database error")
+            }
+            res.status(200).send("Chat deleted succesfully")
+        })
+    }
     let sql=`DELETE FROM messages WHERE conversation_id=? AND user_id=?`
     connection.execute(sql, [conversation_id,user_id], (err,results)=>{
         if(err){
@@ -259,14 +296,25 @@ app.get('/characters',verifyToken,(req,res)=>{
     console.log("getting characters")
     let user_id = req.user_id
     console.log(req.user_id)
-    let sql=`SELECT * FROM characters WHERE user_id=?`
-    connection.execute(sql,[user_id],(err,results)=>{
-        if(err){
-            console.log(err)
-            res.status(500).send("Unable to retrieve characters")
-        }
-        res.status(200).send(JSON.stringify(results))
-    })
+    if (user_id=="0"){
+        let sql=`SELECT * FROM characters`
+        connection.execute(sql,[user_id],(err,results)=>{
+            if(err){
+                console.log(err)
+                res.status(500).send("Unable to retrieve characters")
+            }
+            res.status(200).send(JSON.stringify(results))
+        })
+    }else{
+        let sql=`SELECT * FROM characters WHERE user_id=?`
+        connection.execute(sql,[user_id],(err,results)=>{
+            if(err){
+                console.log(err)
+                res.status(500).send("Unable to retrieve characters")
+            }
+            res.status(200).send(JSON.stringify(results))
+        })
+    }
 })
 
 app.post('/characters/create',verifyToken,upload.single("file"),(req,res)=>{

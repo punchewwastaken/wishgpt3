@@ -27,6 +27,5 @@ async function login(){
         }else{
             window.location.replace("../403.html")
         }
-        
     }
 }
