@@ -93,16 +93,19 @@ async function loadMessages() {
             'Authorization': `Bearer ${jwt}`,
         },
     });
+
     if (chats.status == 403) {
         window.location.replace("../403.html");
     }
+
     chats = await chats.json();
-    print(chats)
+    console.log(Array.isArray(chats));
+    console.log(chats)
     if (chats) {
         // Group messages by conversation_id while also collecting character_id
         let groupedMessages = chats.reduce((acc, msg) => {
             if (!acc[msg.conversation_id]) {
-                acc[msg.conversation_id] = { messages: [], character_id: msg.character_id };
+                acc[msg.conversation_id] = { messages: [], character_id: msg.character_id, topic:msg.topic};
             }
             acc[msg.conversation_id].messages.push({
                 content: msg.message,
@@ -110,14 +113,16 @@ async function loadMessages() {
             });
             return acc;
         }, {});
+        console.log(groupedMessages)
         // Convert grouped messages into an array format
         const conversationsArray = Object.entries(groupedMessages).map(([conversationId, data]) => ({
             conversation_id: conversationId,
+            topic: data.topic,
             character_id: data.character_id,  // Attach character_id
             messages: data.messages,
         }));
-        print(conversationsArray)
         for (const item of conversationsArray) {
+            console.log(item.topic);
             let conversation_id = item.conversation_id;
             // Check if conversation already exists in chatHistoryList
             if (!chatHistoryList.some(chat => chat.conversation_id === conversation_id)) {
@@ -136,7 +141,6 @@ async function loadMessages() {
                     chatHistoryContainer.appendChild(object);
                 }
                 chatHistoryList.push(item);  // Push with character_id attached
-                console.log(chatHistoryList);
             }
         }
     } else {
@@ -230,8 +234,9 @@ async function createCharacter(){
     }
 }   
 
+//quick chatgpt function to actually handle select/deselect and not just changing between characters. Also resets conversation_id so that's cool
 async function loadCharacter(input) {
-    await loadMessages(); // Ensure messages are loaded
+    await loadMessages();
 
     let selectedCharacter = characterList.find(item => item.character_id == input);
     
@@ -240,10 +245,10 @@ async function loadCharacter(input) {
     let charaObj = document.getElementById(selectedCharacter.character_id);
 
     // Check if the character is already selected
-    if (currentcharacter.some(item => item.character_id === input)) {
+    if (currentcharacter.some(item => Number(item.character_id) === Number(input))) {
         // Deselect the character
         charaObj.style.backgroundColor = "rgb(108, 213, 216)"; // Default color
-        currentcharacter = currentcharacter.filter(item => item.character_id !== input); // Remove from list
+        currentcharacter = currentcharacter.filter(item => Number(item.character_id) !== Number(input)); // Remove from list
         characterPrompt = ""; // Reset prompt
         currentCharacterName = "";
         currentCharacterId = "";
@@ -272,20 +277,12 @@ async function loadCharacter(input) {
         currentCharacterId = selectedCharacter.character_id;
         conversation_id = ""; // Reset conversation_id when switching
         temporaryChatHistory = [];
-
-        // Check if the selected character's `character_id` matches any stored chat history
-        let matchingChat = chatHistoryList.find(chat => chat.character_id == selectedCharacter.character_id);
-
-        // Only clear responseContainer if no matching chat is found
-        if (!matchingChat) {
-            responseContainer.replaceChildren();
-        } else {
-            console.log("Existing chat detected, keeping responseContainer intact.");
-        }
-
+        responseContainer.replaceChildren();
         console.log("Character selected: " + selectedCharacter.character_name);
     }
 }
+
+
 
 //Load chat history
 function loadChat(inputValue){
@@ -294,7 +291,6 @@ function loadChat(inputValue){
         let user
         let bot
         if (chat.conversation_id == inputValue){
-            print(chat.character_id)
             conversation_id=chat.conversation_id
             console.log("chat conversation id is : "+conversation_id)
             for(item of chat.messages) {
@@ -309,6 +305,7 @@ function loadChat(inputValue){
         }
     }try{
             responseContainer.removeChild(responseContainer.firstChild)
+            print(responseContainer)
         } catch (error){
             console.log("no first child found.")
         }

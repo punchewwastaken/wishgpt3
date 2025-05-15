@@ -173,6 +173,7 @@ app.get('/chat/retrieve',verifyToken,(req,res)=>{
 })
 
 app.post('/chat/message',verifyToken,async (req,res)=>{
+    let character_name
     let conversation_id = req.headers["conversation-id"]
     let character_id = req.headers["character-id"]
     if(!conversation_id){
@@ -188,6 +189,7 @@ app.post('/chat/message',verifyToken,async (req,res)=>{
     }
     //commenting away because this implementation scrambles the conversation_id each time it is reloaded
     let user_id = req.user_id
+    let user = req.user
     let roleplay_name = req.headers["roleplay-name"]
     if(!roleplay_name){
         roleplay_name=req.user
@@ -228,15 +230,68 @@ app.post('/chat/message',verifyToken,async (req,res)=>{
             res.status(500).send("Database error")
         }
       })
+      let sqlchara=`SELECT character_name FROM characters WHERE character_id=?`
+      connection.execute(sqlchara, [character_id],(err, results)=>{
+        if(err){
+            console.log(err)
+        }
+        console.log(results)
+        if(results.length==0){
+            character_name="Mabel"
+        }else{
+            character_name = results.character_name
+        }
+      })
       //add topic generation code
-
+      let sql3=`SELECT * FROM messages WHERE conversation_id=? ORDER BY timestamp ASC`
+      connection.execute(sql3, [conversation_id],async (err, results)=>{
+        if(err){
+            console.log(err)
+        }
+        if(results.length<=2){
+            if(!results.topic){
+                let content = new Array()
+                    let object ={
+                        message1: `${user}, "message": ${userMessage}`,
+                        message2: `${character_name}, "message": ${botMessage}`
+                    }
+                    content.push(JSON.stringify(object))
+                
+                console.log("array: "+content)
+                let data2 =[
+                    {"role":"system","content":"Summarize the content of the chat below into a sentence that marks the topic, as well as between who the conversation is about"},
+                    {"role":"user", "content":`${content}`}
+                ]
+                let request={
+                        messages:data2,
+                        model:"llama3.2"
+                    }
+                let response = await fetch(URL,{
+                    method:'POST',
+                    headers:{
+                        'Content-type':'application/json'
+                        },
+                    body:JSON.stringify(request)
+                    })
+                let summaryresponse = await response.json()
+                let summary = summaryresponse.choices[0].message.content
+                console.log(summary)
+                let sql=`UPDATE messages SET topic=? WHERE user_id=? AND conversation_id=?`
+                connection.execute(sql,[summary,user_id,conversation_id],(err,results)=>{
+                    if(err){
+                        console.log(err)
+                    }
+                })
+            }
+        }
+      })
       res.status(200).send(data)
   } catch (error) {
       console.error('Error routing request to provider:', error);
       res.status(500).send({ error: 'Failed to fetch response from provider' });
   }
 })
-
+/*
 app.post('/chat/message/topic',verifyToken,async(req,res)=>{
     let user_id=req.user_id
     console.log(user_id)
@@ -265,9 +320,8 @@ app.post('/chat/message/topic',verifyToken,async(req,res)=>{
             console.log(err)
             res.status(500).send("Unable to generate topic marker")
         }
-        res.status(200)
     })
-})
+})*/
 
 app.post('/chat/delete',verifyToken,(req,res)=>{
     let user_id = req.user_id
