@@ -1,3 +1,4 @@
+//not used since no mobile compatiblity
 let mobileNavMenu = false
 let mobileBurgerMenu = document.getElementById("index-hamburger-menu")
 function openMobileMenu(){

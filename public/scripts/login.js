@@ -1,8 +1,9 @@
+//function to add jwt to cookie storage
 async function createCookie(id){
     document.cookie=`jwt=${id}; path=/`
     console.log(document.cookie)
 }
-
+//login function that also stores cookie
 async function login(){
     let username = document.getElementById("name").value
     let password = document.getElementById("password").value

@@ -1,3 +1,4 @@
+//big function to create account
 async function createAccount(){
     let username = document.getElementById("usr").value;
     let password = document.getElementById("pass").value;
@@ -14,8 +15,7 @@ async function createAccount(){
                 'Content-type':'application/JSON'
             },
             body:JSON.stringify(info)
-        })        
-        .then(response => {
+        }).then(response => {
             if (response.status === 409) {
                 console.log('User already exists!');
                 alert("Username allready exists!")

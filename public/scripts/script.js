@@ -5,15 +5,15 @@ let characterMenu = document.getElementById("character-container")
 let inputMessage = document.getElementById("chat-input")
 let CCmenu = document.getElementById("character-creation-menu")
 let CCmenycontainer = document.getElementById("character-creation-container")
-let temporaryChatHistory = []
-let chatHistoryList = []
+let temporaryChatHistory = [] //place to put the current chat
+let chatHistoryList = [] //client side list for all the chats
 let mobileCharMenu = false
 let mobileHistMenu = false
 let mobileNavMenu = false
 let mobileBurgerMenu = document.getElementById("index-hamburger-menu")
 let charMenu = document.querySelector(".grid-chara")
 let historyMenu = document.querySelector(".grid-chat-hist")
-//list of characters, "Mabel" is a default character
+//list of characters, "Mabel" is a default character and hard coded
 let characterList = [
     {
         character_name:'Mabel',
@@ -22,7 +22,7 @@ let characterList = [
         character_id:"0"
     },
 ]
-let characterPrompt
+let characterPrompt 
 let currentCharacterName
 let currentCharacterId
 let currentcharacter = []
@@ -35,19 +35,17 @@ document.addEventListener('keydown', function(e){
         goChat()
     }
 })
-
+//check jwt in console
 window.onload=function(){
     console.log(jwt)
 }
 //self explaining logout function
-
 function logout(){
     document.cookie = "jwt=; max-age=0; path=/"
     window.location.replace("index.html")
 }
 
-//get messages from DB
-
+//load data from DB
 window.onload=async function LoadDatafromDB(){
     await loadMessages()
     //characters
@@ -64,7 +62,7 @@ window.onload=async function LoadDatafromDB(){
     characters = JSON.stringify(characters)
     characters = JSON.parse(characters)
     characterList.push(...characters)
-        //add character from db to localstorage
+        //add character from db to client
         for(let item of characterList){
             if(item.character_id==="0"){
             }else{
@@ -85,7 +83,7 @@ window.onload=async function LoadDatafromDB(){
         }
     }
 }
-
+//function loadmessage so it can be used in multiple places
 async function loadMessages() {
     let chats = await fetch('/chat/retrieve', {
         method: 'GET',
@@ -133,7 +131,7 @@ async function loadMessages() {
                     object.className = "chat-history-object";
                     object.innerHTML = `<i onclick="" class="fa-solid fa-cloud-arrow-down"></i><i onclick="deleteChat('${conversation_id}')" class="fa-solid fa-trash"></i>`;
                     
-                    let chatName = item.topic || item.conversation_id;
+                    let chatName = item.topic || item.conversation_id;//conversation_id fallback if topic is empty
                     object.id = conversation_id;
                     p.innerHTML = `${chatName}`;
                     object.appendChild(p);
@@ -148,7 +146,7 @@ async function loadMessages() {
     }
 }
 
-
+//function to delete character
 async function deleteCharacter(input){
     print("deleting a charavyer")
     let character_id=input
@@ -207,7 +205,7 @@ async function createCharacter(){
     }else{
     let file = fileInput.files[0]; // Get actual file
     let form = new FormData()
-    form.append("file", file)
+    form.append("file", file) //add file to form
     let character = {
         character_name : charaName,
         description : charaDesc,
@@ -216,6 +214,7 @@ async function createCharacter(){
     }
     console.log(character)
     form.append("data", JSON.stringify(character))
+    //send data as form, since application/json cannot send files
     let response = await fetch("/characters/create", {
         method: "POST",
             headers:{
@@ -229,6 +228,7 @@ async function createCharacter(){
     if(!response.ok){
         alert("Failed to upload")
     }else{
+        //refresh window upon succesfull upload, that way I don't have to use a RTC implementation for loading characters
             window.location.reload()
         }
     }
@@ -236,6 +236,7 @@ async function createCharacter(){
 
 //quick chatgpt function to actually handle select/deselect and not just changing between characters. Also resets conversation_id so that's cool
 async function loadCharacter(input) {
+    //load messages when loading new character, it will basically create new chat object element in the client website and act as a "save chat"
     await loadMessages();
 
     let selectedCharacter = characterList.find(item => item.character_id == input);
@@ -282,8 +283,6 @@ async function loadCharacter(input) {
     }
 }
 
-
-
 //Load chat history
 function loadChat(inputValue){
     responseContainer.replaceChildren()
@@ -312,6 +311,7 @@ function loadChat(inputValue){
 }
 //delete saved chat history
 async function deleteChat(inputValue){
+    //look for item in chathistorylist and delete that on clientside first before deleteing on db
     for (const [index, item] of chatHistoryList.entries()){
         if (item.conversation_id == inputValue){
             let chatObject = document.getElementById(`${item.conversation_id}`)
@@ -350,6 +350,7 @@ function clearChatHistory(){
 //Generate response
 async function generateText(input){
     let msg
+    //check if conversation_id is empty, if it is then generate new one
     if(!conversation_id){
         let now = new Date()
         conversation_id = `${now}`
@@ -364,6 +365,7 @@ async function generateText(input){
     let arr = [botPrompt, userPrompt]
     msg = history.concat(arr)
     const URL = "/chat/message"
+    //create request object
     request = {
         messages : msg,
         temperature:0.7,
@@ -397,6 +399,8 @@ async function generateText(input){
         output = marked.parse(output)
         return output
 }
+
+//function to generate the items needed to display user and bot messages
 function makeChatObjects(user, bot){
     if (user&&!bot){
         let question = document.createElement("p")

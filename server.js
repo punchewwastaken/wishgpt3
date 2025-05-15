@@ -29,7 +29,7 @@ function hashString(salt, input){
   }
 //secret
 let secret_word = "aborre"
-//jwt buffer
+//buffer secret
 const secret = Buffer.from(secret_word)
 // Create the connection to database
 const connection = mysql.createConnection({
@@ -75,21 +75,24 @@ async function verifyToken(req, res, next) {
     }
 }
 
-//check if is hash-like string
+//check if is hash-like string for conversation_id verification
 function isSHA256Hash(str) {
     return /^[a-f0-9]{64}$/i.test(str);
 }
 
 //routes
 
+//sends index.html
 app.get('/',(req,res)=>{
     res.status(200).sendFile(path.join(__dirname+"/public/index.html"))
 })
 
+//sends you to login.html, although not used since client does not support express.js redirect
 app.get('/login',(req,res)=>{
-    res.status(200).redirect(path.join(__dirname+"/public/login.html"))
+    res.status(200).redirect("http://localhost:3000/login.html")
 })
 
+//login route, pretty self explanatory
 app.post('/login/login',(req,res)=>{
     let username = req.body.username
     let password = req.body.password
@@ -112,6 +115,7 @@ app.post('/login/login',(req,res)=>{
     })
 })
 
+//signup route, also very explanatory
 app.post('/login/signup', (req, res) => {
     let username = req.body.username;
     let password = req.body.password;
@@ -141,15 +145,17 @@ app.post('/login/signup', (req, res) => {
     });
 });
 
+//unused route since its client redirect, but good to have in casae someone goes directly to chat.html
 app.get('/chat',(req,res)=>{
     res.status(200).sendFile(path.join(__dirname+"/public/chat.html"))
 })
 
+//retrieve and send all chats belonging to user or to admin account
 app.get('/chat/retrieve',verifyToken,(req,res)=>{
     let user_id = req.user_id
     console.log("Retrieving chats from: "+req.user)
-    // Validate user_id
-    if(user_id=="0"){
+    // Validate user_id, check if user is admin or not
+    if(user_id=="0"){ //if user is admin send all chats
         let sql=`SELECT * FROM messages ORDER BY timestamp ASC`
         connection.execute(sql,(err, results)=>{
             if(err){
@@ -159,7 +165,7 @@ app.get('/chat/retrieve',verifyToken,(req,res)=>{
             console.log(results)
             res.status(200).send(results)
         })
-    }else{
+    }else{//normal user, send only chats that belong to user
         let sql=`SELECT * FROM messages WHERE user_id='?' ORDER BY timestamp ASC`
         connection.execute(sql,[user_id],(err, results)=>{
             if(err){
@@ -172,6 +178,7 @@ app.get('/chat/retrieve',verifyToken,(req,res)=>{
     }
 })
 
+//big function to handle mesaging, chat storage and topic marker generation
 app.post('/chat/message',verifyToken,async (req,res)=>{
     let character_name
     let conversation_id = req.headers["conversation-id"]
@@ -187,7 +194,6 @@ app.post('/chat/message',verifyToken,async (req,res)=>{
     }else{
         conversation_id = conversation_id
     }
-    //commenting away because this implementation scrambles the conversation_id each time it is reloaded
     let user_id = req.user_id
     let user = req.user
     let roleplay_name = req.headers["roleplay-name"]
@@ -204,7 +210,6 @@ app.post('/chat/message',verifyToken,async (req,res)=>{
       });
       const data = await response.json()
       let processedReq = req
-      //console.log("request: "+JSON.stringify(req.body.messages[1].content)) hur man formaterar body.req
       let userMessage = processedReq.body.messages[processedReq.body.messages.length-1].content
       let debug ={
         conversation_id,
@@ -242,12 +247,13 @@ app.post('/chat/message',verifyToken,async (req,res)=>{
             character_name = results.character_name
         }
       })
-      //add topic generation code
+      //check newest messages
       let sql3=`SELECT * FROM messages WHERE conversation_id=? ORDER BY timestamp ASC`
       connection.execute(sql3, [conversation_id],async (err, results)=>{
         if(err){
             console.log(err)
         }
+        //check if topic marker is empty or if newest message is less or equal to 2, if so then create a topic marker
         if(results.length<=2){
             if(!results.topic){
                 let content = new Array()
@@ -276,6 +282,7 @@ app.post('/chat/message',verifyToken,async (req,res)=>{
                 let summaryresponse = await response.json()
                 let summary = summaryresponse.choices[0].message.content
                 console.log(summary)
+                //update topic to be summary
                 let sql=`UPDATE messages SET topic=? WHERE user_id=? AND conversation_id=?`
                 connection.execute(sql,[summary,user_id,conversation_id],(err,results)=>{
                     if(err){
@@ -291,42 +298,12 @@ app.post('/chat/message',verifyToken,async (req,res)=>{
       res.status(500).send({ error: 'Failed to fetch response from provider' });
   }
 })
-/*
-app.post('/chat/message/topic',verifyToken,async(req,res)=>{
-    let user_id=req.user_id
-    console.log(user_id)
-    let conversation_id=req.headers["conversation-id"]
-    let content =req.body.data
-    let data =[
-        {"role":"system","content":"Summarize the content of the chat below into a short sentence that marks the topic"},
-        {"role":"user", "content":`${content}`}
-    ]
-    let request={
-        messages:data,
-        model:"llama3.2"
-    }
-    let response = await fetch(URL,{
-        method:'POST',
-        headers:{
-            'Content-type':'application/json'
-        },
-        body:request
-    })
-    let summaryresponse = response.json()
-    let summary = summaryresponse.choices[0].message.content
-    let sql=`UPDATE messages SET topic=? WHERE user_id=?,conversation_id=?`
-    connection.execute(sql,[summary, user_id,conversation_id],(err,results)=>{
-        if(err){
-            console.log(err)
-            res.status(500).send("Unable to generate topic marker")
-        }
-    })
-})*/
 
+//route to delete messages, pretty simple it just sends deletion with conversation_id
 app.post('/chat/delete',verifyToken,(req,res)=>{
     let user_id = req.user_id
     let conversation_id = req.headers["conversation-id"]
-    if(user_id=="0"){
+    if(user_id=="0"){//checks if is admin
         let sql=`DELETE FROM messages WHERE conversation_id=?`
         connection.execute(sql, [conversation_id], (err,results)=>{
             if(err){
@@ -335,7 +312,7 @@ app.post('/chat/delete',verifyToken,(req,res)=>{
             }
             res.status(200).send("Chat deleted succesfully")
         })
-    }else{
+    }else{//additional safety by checking if it is the correct user deleting the chat
         let sql=`DELETE FROM messages WHERE conversation_id=? AND user_id=?`
         connection.execute(sql, [conversation_id,user_id], (err,results)=>{
             if(err){
@@ -347,11 +324,12 @@ app.post('/chat/delete',verifyToken,(req,res)=>{
     }
 })
 
+//route to load characters
 app.get('/characters',verifyToken,(req,res)=>{
     console.log("getting characters")
     let user_id = req.user_id
     console.log(req.user_id)
-    if (user_id=="0"){
+    if (user_id=="0"){//load all if admin
         let sql=`SELECT * FROM characters`
         connection.execute(sql,[user_id],(err,results)=>{
             if(err){
@@ -360,7 +338,7 @@ app.get('/characters',verifyToken,(req,res)=>{
             }
             res.status(200).send(JSON.stringify(results))
         })
-    }else{
+    }else{//load only belinging to user
         let sql=`SELECT * FROM characters WHERE user_id=?`
         connection.execute(sql,[user_id],(err,results)=>{
             if(err){
@@ -372,6 +350,7 @@ app.get('/characters',verifyToken,(req,res)=>{
     }
 })
 
+//create character route
 app.post('/characters/create',verifyToken,upload.single("file"),(req,res)=>{
     console.log("Image has been received")
     let filename = req.file.originalname
@@ -398,6 +377,7 @@ app.post('/characters/create',verifyToken,upload.single("file"),(req,res)=>{
     })
 })
 
+//delete character, forgot to add admin check but since the character loading code only sends characters beloning to user it shouldn't be needed anyway
 app.post('/characters/delete',verifyToken,(req,res)=>{
     let user_id=req.user_id
     let character_id=req.headers['character_id']
