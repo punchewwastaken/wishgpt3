@@ -1,1 +1,1 @@
-npm install package.JSON, then import wishgpt.sql for database
+npm install package.JSON, then import wishgpt.sql for database \n download Ollama from ollama.com, install the .exe, open cmd after installation, type "ollama run llama3.2", wait until its finished and started, then move to the website/webserver and try it out with the given login in /index.html
