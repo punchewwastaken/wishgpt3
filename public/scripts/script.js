@@ -57,6 +57,9 @@ window.onload=async function LoadDatafromDB(){
             'Authorization':`Bearer ${jwt}`
         },
     })
+    if(characters.status==403){
+        window.location.replace("../403.html")
+    }
     characters = await characters.json()
     characters = JSON.stringify(characters)
     characters = JSON.parse(characters)
@@ -90,6 +93,9 @@ async function loadMessages() {
             'Authorization': `Bearer ${jwt}`,
         },
     });
+    if(chats.status==403){
+        window.location.replace("../403.html")
+    }
     chats = await chats.json();
     console.log(Array.isArray(chats));
     if (chats) {
@@ -148,6 +154,9 @@ async function deleteCharacter(input){
             'character_id':`${character_id}`
         }
     })
+    if(response.status==403){
+        window.location.replace("../403.html")
+    }
     if(response.ok){
         print("character deleted")
         window.location.reload()
@@ -209,6 +218,9 @@ async function createCharacter(){
         },
         body: form
     })
+    if(response.status==403){
+        window.location.replace("../403.html")
+    }
     if(!response.ok){
         alert("Failed to upload")
     }else{
@@ -309,6 +321,9 @@ async function deleteChat(inputValue){
             'conversation-id':`${inputValue}`
         },
     })
+    if(response.status==403){
+        window.location.replace("../403.html")
+    }
     if(response.ok){
         print("all good, its gone deleted yeeted")
     }else{
@@ -362,6 +377,9 @@ async function generateText(input){
             },
             body: JSON.stringify(request)
         })
+        if(response.status==403){
+        window.location.replace("../403.html")
+        }
         if (!response.ok){
             console.log("Error:", response.status)
             let errorMessage = "An error was encountered. Please check your internet connection. "
