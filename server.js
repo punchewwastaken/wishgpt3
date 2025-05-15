@@ -149,7 +149,7 @@ app.get('/chat/retrieve',verifyToken,(req,res)=>{
     let user_id = req.user_id
     console.log("Retrieving chats from: "+req.user)
     // Validate user_id
-    if(user_id===0){
+    if(user_id=="0"){
         let sql=`SELECT * FROM messages ORDER BY timestamp ASC`
         connection.execute(sql,(err, results)=>{
             if(err){
@@ -270,7 +270,7 @@ app.post('/chat/message/topic',verifyToken,async(req,res)=>{
 })
 
 app.post('/chat/delete',verifyToken,(req,res)=>{
-    let user_id = req.user
+    let user_id = req.user_id
     let conversation_id = req.headers["conversation-id"]
     if(user_id=="0"){
         let sql=`DELETE FROM messages WHERE conversation_id=?`
@@ -281,15 +281,16 @@ app.post('/chat/delete',verifyToken,(req,res)=>{
             }
             res.status(200).send("Chat deleted succesfully")
         })
+    }else{
+        let sql=`DELETE FROM messages WHERE conversation_id=? AND user_id=?`
+        connection.execute(sql, [conversation_id,user_id], (err,results)=>{
+            if(err){
+                console.log(err)
+                res.status(500).send("Internal database error")
+            }
+            res.status(200).send("Chat deleted succesfully")
+        })
     }
-    let sql=`DELETE FROM messages WHERE conversation_id=? AND user_id=?`
-    connection.execute(sql, [conversation_id,user_id], (err,results)=>{
-        if(err){
-            console.log(err)
-            res.status(500).send("Internal database error")
-        }
-        res.status(200).send("Chat deleted succesfully")
-    })
 })
 
 app.get('/characters',verifyToken,(req,res)=>{
